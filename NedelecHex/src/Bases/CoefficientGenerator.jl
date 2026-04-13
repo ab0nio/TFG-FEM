@@ -1,6 +1,7 @@
 module CoefficientGenerator
 
 using LinearAlgebra
+using BenchmarkTools: @benchmark, median, mean, minimum, maximum
 using ..Monomials: build_h2_monomials
 using ..DOFs: evaluate_edge_dof, evaluate_face_dof, evaluate_volume_dof
 using Printf
@@ -91,6 +92,36 @@ function run_all_tests(; verbose::Bool=true)
         end
         println("Tabla W guardada en: $(joinpath(output_dir, "tabla_W.txt"))")
     end
+
+    # Benchmark get_coefficients() and append results to the file
+    println("\nInicio del benchmark:")
+    bench = @benchmark get_coefficients() samples = 50 evals = 1
+    t_min = minimum(bench).time / 1e6   # ns → ms
+    t_median = median(bench).time / 1e6
+    t_mean = mean(bench).time / 1e6
+    t_max = maximum(bench).time / 1e6
+    allocs = median(bench).allocs
+    mem_kb = median(bench).memory / 1024
+
+    @printf("Benchmark (n=%d muestras):\n", length(bench.times))
+    @printf("  min:    %.3f ms\n", t_min)
+    @printf("  median: %.3f ms\n", t_median)
+    @printf("  mean:   %.3f ms\n", t_mean)
+    @printf("  max:    %.3f ms\n", t_max)
+    @printf("  allocs: %d  memory: %.1f KiB\n", allocs, mem_kb)
+
+    output_dir = joinpath(@__DIR__, "..", "..", "output")
+    open(joinpath(output_dir, "tabla_W.txt"), "a") do f
+        println(f)
+        println(f, "=== Benchmark: get_coefficients() (Julia) ===")
+        @printf(f, "Samples: %d\n", length(bench.times))
+        @printf(f, "  min:    %.3f ms\n", t_min)
+        @printf(f, "  median: %.3f ms\n", t_median)
+        @printf(f, "  mean:   %.3f ms\n", t_mean)
+        @printf(f, "  max:    %.3f ms\n", t_max)
+        @printf(f, "  allocs: %d  memory: %.1f KiB\n", allocs, mem_kb)
+    end
+    println("Benchmark guardado en: $(joinpath(output_dir, "tabla_W.txt"))")
 
     return passed, W, G
 end
