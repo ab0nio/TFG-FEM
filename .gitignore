@@ -16,3 +16,6 @@ ENV/
 
 # Manim
 media/
+
+# Outputs generados (los CSV de MATLAB sí se versionan)
+NedelecHex/output/*.txt
