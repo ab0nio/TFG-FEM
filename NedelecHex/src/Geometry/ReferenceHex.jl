@@ -13,6 +13,14 @@ const NODES = [
     [0.0, 0.0, 1.0], [1.0, 0.0, 1.0], [1.0, 1.0, 1.0], [0.0, 1.0, 1.0]
 ]
 
+# Cada arista apunta en el sentido creciente del eje (ξ, η o ζ) al que es
+# paralela — no "de índice de nodo menor a mayor". Dos aristas paralelas al
+# mismo eje tienen exactamente la misma dirección cartesiana (p.ej. las
+# aristas 1 y 3, ambas +ξ), porque Q_EDGE=(1-t,t) en DOFs.jl asume que t
+# recorre esa coordenada de referencia de 0 a 1. Por eso las aristas 3=(4,3)
+# y 7=(8,7) se escriben "invertidas" respecto al índice de nodo: son las
+# aristas lejanas al origen de su cara, donde la dirección +ξ va del nodo de
+# índice mayor al menor.
 const EDGES = [
     (1, 2), (2, 3), (4, 3), (1, 4),
     (5, 6), (6, 7), (8, 7), (5, 8),

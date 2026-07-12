@@ -4,8 +4,10 @@
 
     @test length(mono) == 54
     @test length(curl_mono) == 54
+    explica("Dimensión de H₂: 54 = 3 bloques × 18 monomios — producto tensorial Q(1,2,2)×Q(2,1,2)×Q(2,2,1) de la ec. 4 del paper.")
 
     # ── 18 monomios por componente (ξ̂: 1–18, η̂: 19–36, ζ̂: 37–54) ────────────
+    explica("Estructura por bloques: cada monomio tiene una única componente no nula (1–18 → ξ̂, 19–36 → η̂, 37–54 → ζ̂); las otras dos deben ser 0.0 exacto en cualquier punto (se muestrean 3).")
     samples = ([0.2, 0.6, 0.9], [0.7, 0.1, 0.4], [0.35, 0.85, 0.15])
     for pt in samples
         for j in 1:18
@@ -39,6 +41,7 @@
 
     fixed = [0.37, 0.61, 0.83]
     h = 0.05
+    explica("Restricción de Nédélec (ec. 4): la n-ésima diferencia finita Δⁿ aniquila los polinomios de grado < n. Se aplica Δ² sobre el eje propio de cada bloque (grado ≤1) y Δ³ sobre los otros dos (grado ≤2): 3 ejes × 54 monomios deben dar 0.")
 
     # Bloque ξ̂ (1–18): grado ≤1 en ξ, ≤2 en η y ζ
     for j in 1:18
@@ -79,5 +82,9 @@
         c_analytic = curl_mono[j](pt_test)
         c_fd       = fd_curl(mono[j], pt_test)
         @test isapprox(c_analytic, c_fd, atol=1e-6)
+    end
+    if TEST_VERBOSE
+        maxdif = maximum(norm(curl_mono[j](pt_test) .- fd_curl(mono[j], pt_test)) for j in 1:54)
+        explica("Curl analítico (derivado a mano) vs rotacional por diferencias centradas (camino de cálculo independiente): discrepancia máxima en los 54 monomios = $(maxdif), dentro del error O(h²) ≈ 1e-8 del esquema numérico.")
     end
 end

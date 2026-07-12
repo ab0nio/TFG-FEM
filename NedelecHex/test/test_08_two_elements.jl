@@ -11,6 +11,7 @@
     #   4 aristas × 2 DOFs = 8 DOFs de arista compartidos
     #   1 cara    × 4 DOFs = 4 DOFs de cara   compartidos
     #   Total compartidos  = 12  →  96 DOFs globales (54+54−12)
+    explica("Dos elementos que comparten la cara x=0.5: 54+54−12 = 96 DOFs globales; los 12 compartidos son 4 aristas × 2 + 1 cara × 4 (los de volumen nunca se comparten).")
     @test dof_map.n_dofs == 96
 
     conn1  = dof_map.connectivity[1, :]
@@ -39,6 +40,7 @@
     K, _ = NedelecHex.Assembly.assemble_global_matrices(
                mesh, dof_map, W, mono, curl_mono)
 
+    explica("Acumulación COO entrada a entrada: para cada DOF compartido g (y cada pareja g,h), K_global debe ser exactamente K₁ + K₂ evaluadas en los índices locales correspondientes — la suma de contribuciones es la definición misma del ensamblaje.")
     for g in shared
         loc1 = findfirst(==(g), conn1)
         loc2 = findfirst(==(g), conn2)
@@ -68,6 +70,7 @@
     # separado, y se verifica que ambos elementos coinciden — es decir, que la
     # orientación relativa (ξ̂ o η̂ o ζ̂, según corresponda) es consistente a
     # través de la cara compartida.
+    explica("Orientación de las 4 aristas compartidas: ambos elementos deben ligar el mismo DOF global al nodo mínimo y al máximo de cada arista común — de esto depende la continuidad tangencial a través de la cara.")
     EDGES = NedelecHex.ReferenceHex.EDGES
     n_shared_edges_checked = 0
     for (le1, (ln1, ln2)) in enumerate(EDGES)
@@ -102,10 +105,11 @@
     # repetido, así que la propia existencia de K,M como SparseMatrixCSC bien
     # formadas ya garantiza ausencia de duplicados. Se comprueba además que
     # todos los índices de fila/columna están en rango.
+    explica("Matriz dispersa bien formada: índices dentro de rango y sin pares (i,j) duplicados tras sparse().")
     rows, cols, _ = findnz(K)
     @test all(1 .<= rows .<= dof_map.n_dofs)
     @test all(1 .<= cols .<= dof_map.n_dofs)
     @test length(rows) == length(unique(zip(rows, cols)))
 
-    @info "Tabla de conectividad local→global (dos elementos adyacentes)" conn1 conn2
+    TEST_VERBOSE && @info "Tabla de conectividad local→global (dos elementos adyacentes)" conn1 conn2
 end

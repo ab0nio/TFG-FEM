@@ -13,9 +13,17 @@ __pycache__/
 .Python
 venv/
 ENV/
+.venv/
 
 # Manim
 media/
 
 # Outputs generados (los CSV de MATLAB sí se versionan)
 NedelecHex/output/*.txt
+
+# Notas y material personal/con copyright (libros, papers, docs con datos personales)
+documentation/
+
+# Clon local del repo de referencia de aamorm (SystematicBasesForHexahedron),
+# no se versiona en TFG-FEM
+matlab/
