@@ -28,8 +28,5 @@ documentation/
 # no se versiona en TFG-FEM
 matlab/
 
-# Guía local de asistencia (no se versiona)
-CLAUDE.md
-
 # Configuración local del editor (rutas absolutas de esta máquina)
 .vscode/
