@@ -1,7 +1,7 @@
 # TFG: Cálculo de Funciones de Base Hexahédricas de Elementos Finitos para Electromagnetismo en Julia
 
 Trabajo de Fin de Grado (Ingeniería Telecomunicación, UC3M) sobre el Método de
-Elementos Finitos aplicado a electromagnetismo computacional: implementación enn Julia
+Elementos Finitos aplicado a electromagnetismo computacional: implementación en Julia
 de funciones de base hexaédricas *curl-conforming* de Nédélec de segundo orden descrito en:
 
 > A. Amor-Martin y L. E. Garcia-Castillo, "Second-Order Nédélec Curl-Conforming
@@ -11,20 +11,20 @@ de funciones de base hexaédricas *curl-conforming* de Nédélec de segundo orde
 
 ## Estructura del repositorio
 
-- **[`NedelecHex/`](NedelecHex/)**: paquete Julia con la implementación con la siguiente estructura en el orden que recomiendo leerlos para entender el proyecto:
+- **[`NedelecHex/`](NedelecHex/)**: paquete Julia con la implementación. En el orden en que recomiendo leer los módulos para entender el proyecto:
 
-Geometry/ReferenceHex.jl: Define la Topología del Hexahedro de referencia unidad.
-Math/GaussQuadrature.jl: Calcula la integral mediante Gauss para una arista cara y volumen 
-Geometry/Mesh.jl: Construye una malla estructurada y orientada a base de hexahedros(se usa sobre todo el struct que define , ya que la malla la importamos del paper).
-Bases/Monomials.jl: Genera los 54 monomios con las restricciones de Nedelec y tambien el curl de los monomios.
-Bases/DOFs.jl: Implementa los 3 tipos de funcionales para un monomio dado y devuelve un número real.
-Bases/CoefficientGenerator.jl: Construye G(monomios evaluados) y la invierte para sacar W(coeficientes) y comprueba que tenga un número de condicionamiento bajo
-Math/CoordinateTransforms.jl: Transforma un punto 2D de una cara y devuelve el correspondiente 3D
-Bases/BasisEval.jl: Evalúa las 54 funciones de Base en un Punto
-Assembly/GlobalDofs.jl: Pasa de DOFs locales a DOFs Globales(que dos elemntos que compartan arista tengan en esa arista mismo DOF global)
-Assembly/Assembly.jl: Toma las funciones de base locales , la tabla de conectividad de los DOFs Globales y produce el sistema global Kx = \lambda Mx
-Benchmark/HalfFilledCavity.jl: Cavidad Rectangular a*b*c con paredes PEC y una losa dieléctrica con permitividad /epsilon r que ocupa z perteneciente [0,h] y el resto relleno de /epsilon 0 es vacio. Se buscan los k para los que que existe un campo no trivial que satisface Maxwell , PEC en las paredes y continuidad de las componentes tangenciales resolviendo la ecuacion de resonancia
-NedelecHex.jl: Módulo con todos los includes
+  1. **`Geometry/ReferenceHex.jl`**: define la topología del hexaedro de referencia unidad.
+  2. **`Math/GaussQuadrature.jl`**: calcula la integral mediante Gauss para arista, cara y volumen.
+  3. **`Geometry/Mesh.jl`**: construye una malla estructurada y orientada a base de hexaedros (se usa sobre todo el `struct` que define, ya que la malla la importamos del paper).
+  4. **`Bases/Monomials.jl`**: genera los 54 monomios con las restricciones de Nédélec y también el curl de los monomios.
+  5. **`Bases/DOFs.jl`**: implementa los 3 tipos de funcionales para un monomio dado y devuelve un número real.
+  6. **`Bases/CoefficientGenerator.jl`**: construye G (monomios evaluados) y la invierte para sacar W (coeficientes), y comprueba que tenga un número de condicionamiento bajo.
+  7. **`Math/CoordinateTransforms.jl`**: transforma un punto 2D de una cara y devuelve el 3D correspondiente.
+  8. **`Bases/BasisEval.jl`**: evalúa las 54 funciones de base en un punto.
+  9. **`Assembly/GlobalDOFs.jl`**: pasa de DOFs locales a DOFs globales (que dos elementos que compartan arista tengan el mismo DOF global en esa arista).
+  10. **`Assembly/Assembly.jl`**: toma las funciones de base locales y la tabla de conectividad de los DOFs globales, y produce el sistema global `Kx = λMx`.
+  11. **`Benchmark/HalfFilledCavity.jl`**: cavidad rectangular a×b×c con paredes PEC y una losa dieléctrica de permitividad εᵣ que ocupa z ∈ [0, h], con el resto (ε₀) vacío. Se buscan los k para los que existe un campo no trivial que satisface Maxwell, PEC en las paredes y continuidad de las componentes tangenciales, resolviendo la ecuación de resonancia.
+  12. **`NedelecHex.jl`**: módulo que agrupa todos los `include`.
 
 
 - **`matlab/`** *(EL repo original del paper es: https://github.com/aamorm/SystematicBasesForHexahedron?tab=readme-ov-file)* 
@@ -58,16 +58,14 @@ Los tests (`test/runtests.jl`) van en orden construyendo uno encima del otro en 
 | `test_06_gmsh_node_order.jl` | Comprobar que un cambio que una permutación que apliqué debido a un comportamiento inesperado de Gmsh es realmente necesario|
 | `test_07_bases_eval.jl` | Las 54 bases evaluadas en el punto central, comparadas con la Tabla II del paper y con la salida de MATLAB (equivalente a `mainEvaluateCoefficients.m`) |
 | `test_08_assembly.jl` | Ensamblaje global en progresión 1 → 2 → 8 elementos: un elemento (núcleo espurio de dimensión 26), dos elementos adyacentes (DOFs compartidos y orientación de aristas) y malla 2×2×2 (conteo combinatorio y propiedades globales) |
-| `test_09_mms.jl` | Método de Soluciones Manufacturadas: recuperación exacta y convergencia O(h²) |
+| `test_09_mms.jl` | Método de Soluciones Manufacturadas: en proceso
 | `test_10_half_filled_cavity.jl` | Benchmark de la cavidad semillena: convergencia O(h⁴) en autovalores y equivalencia 1:1 con `mainHalfFilled.m` sobre las mallas exportadas de MATLAB |
 
 ## Verificación
 
 - **Benchmark de la cavidad semillena**: problema de autovalores generalizado
   con solución analítica conocida (ecuación de resonancia trascendente);
-  convergencia O(h²) esperada para el elemento de segundo orden.
-- **Método de Soluciones Manufacturadas (MMS)**: recuperación exacta de una
-  solución dentro de H₂ y convergencia log-log con pendiente ≈ 2 para una
-  onda plana oblicua.
+  convergencia O(h²) esperada para el elemento de segundo orden
+
 - **Cruce con MATLAB**: comparación  de matrices locales y coeficientes
   entre la implementación Julia y la referencia MATLAB.
