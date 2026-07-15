@@ -1,8 +1,8 @@
-# TFG: Elemento Hexaédrico de Nédélec de Segundo Orden
+# TFG: Cálculo de Funciones de Base Hexahédricas de Elementos Finitos para Electromagnetismo en Julia
 
 Trabajo de Fin de Grado (Ingeniería Telecomunicación, UC3M) sobre el Método de
-Elementos Finitos aplicado a electromagnetismo computacional: implementación
-del elemento hexaédrico *curl-conforming* de Nédélec de segundo orden descrito en
+Elementos Finitos aplicado a electromagnetismo computacional: implementación enn Julia
+de funciones de base hexaédricas *curl-conforming* de Nédélec de segundo orden descrito en:
 
 > A. Amor-Martin y L. E. Garcia-Castillo, "Second-Order Nédélec Curl-Conforming
 > Hexahedral Element for Computational Electromagnetics," *IEEE Transactions on
@@ -11,57 +11,63 @@ del elemento hexaédrico *curl-conforming* de Nédélec de segundo orden descrit
 
 ## Estructura del repositorio
 
-- **[`NedelecHex/`](NedelecHex/)** — paquete Julia con la implementación
-  activa: geometría del elemento de referencia, cuadratura de Gauss, los 54
-  monomios y funcionales DOF del espacio H₂, generación de coeficientes,
-  evaluación de bases, ensamblaje global y el benchmark de la cavidad
-  semillena. Ver [`CLAUDE.md`](CLAUDE.md) para el mapeo detallado entre el
-  paper y el código.
-- **`matlab/`** *(no versionado, solo local)* — implementación MATLAB de
-  referencia de los autores del paper, usada para verificación numérica
-  cruzada frente a `NedelecHex/`.
-- **[`visualization/manim/`](visualization/manim/)** — animaciones en
-  Python/Manim que ilustran los 54 DOFs, la matriz de coeficientes G→W y la
-  continuidad tangencial entre elementos, generadas con datos reales
-  exportados de Julia.
+- **[`NedelecHex/`](NedelecHex/)**: paquete Julia con la implementación con la siguiente estructura en el orden que recomiendo leerlos para entender el proyecto:
 
-## Uso rápido (paquete Julia)
+Geometry/ReferenceHex.jl: Define la Topología del Hexahedro de referencia unidad.
+Math/GaussQuadrature.jl: Calcula la integral mediante Gauss para una arista cara y volumen 
+Geometry/Mesh.jl: Construye una malla estructurada y orientada a base de hexahedros(se usa sobre todo el struct que define , ya que la malla la importamos del paper).
+Bases/Monomials.jl: Genera los 54 monomios con las restricciones de Nedelec y tambien el curl de los monomios.
+Bases/DOFs.jl: Implementa los 3 tipos de funcionales para un monomio dado y devuelve un número real.
+Bases/CoefficientGenerator.jl: Construye G(monomios evaluados) y la invierte para sacar W(coeficientes) y comprueba que tenga un número de condicionamiento bajo
+Math/CoordinateTransforms.jl: Transforma un punto 2D de una cara y devuelve el correspondiente 3D
+Bases/BasisEval.jl: Evalúa las 54 funciones de Base en un Punto
+Assembly/GlobalDofs.jl: Pasa de DOFs locales a DOFs Globales(que dos elemntos que compartan arista tengan en esa arista mismo DOF global)
+Assembly/Assembly.jl: Toma las funciones de base locales , la tabla de conectividad de los DOFs Globales y produce el sistema global Kx = \lambda Mx
+Benchmark/HalfFilledCavity.jl: Cavidad Rectangular a*b*c con paredes PEC y una losa dieléctrica con permitividad /epsilon r que ocupa z perteneciente [0,h] y el resto relleno de /epsilon 0 es vacio. Se buscan los k para los que que existe un campo no trivial que satisface Maxwell , PEC en las paredes y continuidad de las componentes tangenciales resolviendo la ecuacion de resonancia
+NedelecHex.jl: Módulo con todos los includes
+
+
+- **`matlab/`** *(EL repo original del paper es: https://github.com/aamorm/SystematicBasesForHexahedron?tab=readme-ov-file)* 
+Usado para comparar resultados.
+
+- **[`visualization/manim/`](visualization/manim/)**: animaciones en
+  Python/Manim aún en proceso.
+
+## Uso (paquete Julia)
 
 ```bash
 cd NedelecHex
 julia --project=.
 
-# Suite de tests completa
+# Ejecutar todos los tests
 julia --project=. test/runtests.jl
 
-# Modo verboso: cada bloque explica qué comprueba y por qué
+# Ejecutar los tests con explicaciones de lo que van comprobando
 NEDELEC_TEST_VERBOSE=1 julia --project=. test/runtests.jl
 ```
 
-La suite de tests (`test/runtests.jl`) está ordenada por dependencias, desde
-la cuadratura y el espacio polinómico H₂ hasta el ensamblaje global y el
-benchmark físico de la cavidad semillena con eigenvalores analíticos:
+Los tests (`test/runtests.jl`) van en orden construyendo uno encima del otro en orden de complejidad ascendente
 
 | Test | Qué verifica |
 |---|---|
-| `test_01_quadrature.jl` | Reglas de Gauss 1D/2D/3D |
-| `test_02_monomials.jl` | Los 54 monomios de H₂ y sus rotacionales analíticos |
-| `test_03_dofs.jl` | Funcionales DOF de arista/cara/volumen |
-| `test_04_coefficients.jl` | Matriz G unisolvente, W entero y coincide con la Tabla II del paper |
+| `test_01_quadrature.jl` |Comprobar la integración numeŕica por Gauss en  1D/2D/3D |
+| `test_02_monomials.jl` | LComprobar que los 54 monomios y sus rotacionales están bien generados |
+| `test_03_dofs.jl` | Comprobar que los integrales de los funcionales de los DOFs de Arista, Cara y Volumen se calculan correctamente comparando con integrales conocidas |
+| `test_04_coefficients.jl` |Comprobar que la matriz G es unisolvente, W con coeficientes enteros y menores a 216  y coinciden con la Tabla II del paper |
 | `test_05_reference_element.jl` | Jacobiano, propiedad dual, Kᵉ/Mᵉ, Tabla III (números de condición) |
-| `test_06_gmsh_node_order.jl` | Permutación de nodos de Gmsh vs. convención del elemento de referencia |
-| `test_07_assembly.jl` | Ensamblaje de un elemento y de una malla 2×2×2 |
-| `test_08_two_elements.jl` | DOFs compartidos entre elementos adyacentes |
+| `test_06_gmsh_node_order.jl` | Comprobar que un cambio que una permutación que apliqué debido a un comportamiento inesperado de Gmsh es realmente necesario|
+| `test_07_bases_eval.jl` | Las 54 bases evaluadas en el punto central, comparadas con la Tabla II del paper y con la salida de MATLAB (equivalente a `mainEvaluateCoefficients.m`) |
+| `test_08_assembly.jl` | Ensamblaje global en progresión 1 → 2 → 8 elementos: un elemento (núcleo espurio de dimensión 26), dos elementos adyacentes (DOFs compartidos y orientación de aristas) y malla 2×2×2 (conteo combinatorio y propiedades globales) |
 | `test_09_mms.jl` | Método de Soluciones Manufacturadas: recuperación exacta y convergencia O(h²) |
-| `test_10_half_filled_cavity.jl` | Benchmark de la cavidad semillena: convergencia O(h⁴) en autovalores |
+| `test_10_half_filled_cavity.jl` | Benchmark de la cavidad semillena: convergencia O(h⁴) en autovalores y equivalencia 1:1 con `mainHalfFilled.m` sobre las mallas exportadas de MATLAB |
 
 ## Verificación
 
-- **Benchmark de la cavidad semillena** — problema de autovalores generalizado
+- **Benchmark de la cavidad semillena**: problema de autovalores generalizado
   con solución analítica conocida (ecuación de resonancia trascendente);
   convergencia O(h²) esperada para el elemento de segundo orden.
-- **Método de Soluciones Manufacturadas (MMS)** — recuperación exacta de una
+- **Método de Soluciones Manufacturadas (MMS)**: recuperación exacta de una
   solución dentro de H₂ y convergencia log-log con pendiente ≈ 2 para una
   onda plana oblicua.
-- **Cruce con MATLAB** — comparación 1:1 de matrices locales y coeficientes
-  entre la implementación Julia y la referencia MATLAB de los autores.
+- **Cruce con MATLAB**: comparación  de matrices locales y coeficientes
+  entre la implementación Julia y la referencia MATLAB.

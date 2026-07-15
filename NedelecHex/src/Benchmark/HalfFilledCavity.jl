@@ -1,6 +1,7 @@
 module HalfFilledCavity
 
 using LinearAlgebra, SparseArrays, Printf
+using Arpack: eigs
 
 using ..Mesh: HexMesh, load_hex_mesh
 using ..GlobalDOFs: DOFMap, build_dof_map, dirichlet_dofs
@@ -10,8 +11,7 @@ using ..Monomials: build_h2_monomials, build_h2_curl_monomials
 
 export analytic_kc, analytic_eigenvalues, convergence_study_matlab
 
-# ─── Ecuación trascendente ────────────────────────────────────────────────────
-#
+# Ecuación trascendente.
 # Condición de resonancia para una cavidad rectangular con losa dieléctrica
 # (z ∈ [0,h] con εᵣ, z ∈ [h,c] con vacío), pared PEC en todo el contorno.
 #
@@ -44,8 +44,7 @@ function _resonance_eq(k, m, n, a, b, c, h, epr)
          sq_die * cos(sq_die * h)       / s_die)
 end
 
-# ─── Cálculo del valor propio analítico ──────────────────────────────────────
-#
+# Cálculo del valor propio analítico.
 # Encuentra la raíz de la ecuación trascendente más cercana a kc_init mediante
 # un barrido en malla fina + bisección. La ventana de búsqueda es
 # [max(km+ε, kc_init−scan_hw), kc_init+scan_hw].
@@ -89,8 +88,7 @@ function analytic_eigenvalues(; a=0.01, b=0.001, c=0.01, h=0.005, epr=2.0)
     return kc   # [k101, k201, k102, k301, k202, k103]
 end
 
-# ─── εᵣ por elemento ─────────────────────────────────────────────────────────
-#
+# εᵣ por elemento.
 # La losa dieléctrica ocupa z ∈ [0, h_iface]. Un elemento se asigna al material
 # si su centroide en z está por debajo de la interfase.
 function _element_epsilon(mesh::HexMesh, h_iface::Float64, epr::Float64)
@@ -103,8 +101,30 @@ function _element_epsilon(mesh::HexMesh, h_iface::Float64, epr::Float64)
     return eps_vec
 end
 
-# ─── Estudio de convergencia usando mallas exportadas de MATLAB ──────────────
+# Solver de autovalores.
+# Devuelve los n_modes autovalores físicos más bajos de K·x = λ·M·x, dejando
+# fuera el cúmulo espurio λ≈0 (núcleo irrotacional de K).
 #
+# Mallas pequeñas (n_free ≤ 2000): solver denso + filtro λ > 1. Robusto en
+# mallas gruesas, donde seleccionar por cercanía a un sigma estimado (lo que
+# hace eigs en MATLAB) captura modos espurios.
+# Mallas grandes: eigs (ARPACK) shift-invert con sigma centrado en la banda
+# física analítica, igual que mainHalfFilled.m. Requiere explicittransform=:none
+# (con la transformación explícita por defecto de Arpack.jl la iteración no
+# converge). En malla fina sigma es seguro: los autovalores ya están próximos.
+function _lowest_physical_eigenvalues(K, M, n_modes, k2_analytic)
+    n = size(K, 1)
+    if n <= 2000
+        λ_all = eigvals(Symmetric(Matrix(K)), Symmetric(Matrix(M)))
+        λ_phys = sort(filter(λ -> λ > 1.0, λ_all))
+        return λ_phys[1:n_modes]
+    end
+    sigma = k2_analytic[1] + 1.5 * (sqrt(k2_analytic[end]) - sqrt(k2_analytic[1]))^2
+    λ, _ = eigs(K, M; nev=n_modes, sigma=sigma, which=:LM, explicittransform=:none)
+    return sort(real.(λ))
+end
+
+# Estudio de convergencia usando mallas exportadas de MATLAB.
 # Carga los CSV generados por exportMesh.m y corre el benchmark FEM sobre cada
 # malla. Permite comparar directamente con los resultados de mainHalfFilled.m
 # usando exactamente la misma discretización del dominio.
@@ -120,8 +140,6 @@ function convergence_study_matlab(kc_analytic::Vector{Float64};
     mono      = build_h2_monomials()
     curl_mono = build_h2_curl_monomials()
 
-    sigma = k2_analytic[1] + 1.5 * (kc_analytic[end] - kc_analytic[1])^2
-
     @printf("\n%-8s  %-8s  %-10s  %s\n", "malla", "n_free", "err_medio", "tiempo")
     @printf("%s\n", "-"^42)
 
@@ -130,16 +148,19 @@ function convergence_study_matlab(kc_analytic::Vector{Float64};
         elems_csv = joinpath(mesh_dir, "matlab_elems_$i.csv")
         mesh_i  = load_hex_mesh(nodes_csv, elems_csv)
         dof_map = build_dof_map(mesh_i)
-        eps_vec = _element_epsilon(mesh_i, h, epr)
+        # Las mallas exportadas de MATLAB están centradas (z ∈ [-c/2, c/2]),
+        # a diferencia de box_mesh (z ∈ [0, Lz]); la interfaz dieléctrico/vacío
+        # está a h_iface = z_min + h, no en z = h.
+        z_min   = minimum(@view mesh_i.nodes[:, 3])
+        eps_vec = _element_epsilon(mesh_i, z_min + h, epr)
 
         t0 = time()
         K, M = assemble_global_matrices(mesh_i, dof_map, W, mono, curl_mono;
                                         epsilon_r=eps_vec)
         dir  = dirichlet_dofs(mesh_i, dof_map)
         free = free_dofs(dof_map.n_dofs, dir)
-        λ_all = eigvals(Symmetric(Matrix(K[free,free])), Symmetric(Matrix(M[free,free])))
-        idx   = sortperm(abs.(λ_all .- sigma))[1:n_modes]
-        λ_fem = sort(λ_all[idx])
+        λ_fem = _lowest_physical_eigenvalues(K[free,free], M[free,free],
+                                             n_modes, k2_analytic)
         dt    = time() - t0
 
         k2_fem      = λ_fem[1:n_modes]

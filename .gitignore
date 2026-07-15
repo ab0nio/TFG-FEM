@@ -27,3 +27,6 @@ documentation/
 # Clon local del repo de referencia de aamorm (SystematicBasesForHexahedron),
 # no se versiona en TFG-FEM
 matlab/
+
+# Guía local de asistencia (no se versiona)
+CLAUDE.md

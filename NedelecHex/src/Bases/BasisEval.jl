@@ -25,7 +25,7 @@ function eval_curl_bases_ref(W, curl_monomials, pt)
     return W' * C
 end
 
-# J[i,j] = ∑_k (∂N_k/∂ξ_i)(pt) · x_k[j]  — isoparametric trilinear mapping.
+# J[i,j] = ∑_k (∂N_k/∂ξ_i)(pt) · x_k[j] : isoparametric trilinear mapping.
 # Works for any (possibly distorted) 8-node hexahedron; reduces to constant J
 # for axis-aligned parallelepipeds.
 function compute_jacobian(nodes, pt)
@@ -45,12 +45,12 @@ function compute_jacobian(nodes, pt)
     return J
 end
 
-# Piola covariante H(curl): jacobianMatrix\bases.' 
+# Piola covariante H(curl): jacobianMatrix\bases.'
 function piola_transform(N_ref, J)
     return (J \ N_ref')'
 end
 
-# Piola del curl H(curl): curlBases * jacobianMatrix / det 
+# Piola del curl H(curl): curlBases * jacobianMatrix / det
 function curl_piola_transform(curlN_ref, J)
     return curlN_ref * J / det(J)
 end

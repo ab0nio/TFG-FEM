@@ -3,7 +3,7 @@ module Mesh
 using Gmsh: gmsh
 using DelimitedFiles
 
-export HexMesh, box_mesh, load_hex_mesh
+export HexMesh, box_mesh, load_hex_mesh, element_nodes
 
 struct HexMesh
     nodes::Matrix{Float64}   # n_nodes × 3
@@ -12,6 +12,11 @@ end
 
 Base.show(io::IO, m::HexMesh) =
     print(io, "HexMesh($(size(m.nodes,1)) nodes, $(size(m.elements,1)) elements)")
+
+# Los 8 nodos del elemento e en coordenadas físicas, en el orden local de
+# ReferenceHex.NODES.
+element_nodes(mesh::HexMesh, e::Int) =
+    [mesh.nodes[mesh.elements[e, k], :] for k in 1:8]
 
 function box_mesh(; Lx=1.0, Ly=1.0, Lz=1.0, nx=2, ny=2, nz=2)
     gmsh.initialize()
@@ -40,7 +45,7 @@ function box_mesh(; Lx=1.0, Ly=1.0, Lz=1.0, nx=2, ny=2, nz=2)
     gmsh.model.mesh.generate(3)
     gmsh.model.mesh.recombine()
 
-    # --- nodes ---
+    # Nodos
     node_tags, coords, _ = gmsh.model.mesh.getNodes()
     n_nodes = length(node_tags)
     nodes_mat = Matrix(reshape(coords, 3, n_nodes)')   # n_nodes × 3
@@ -52,10 +57,10 @@ function box_mesh(; Lx=1.0, Ly=1.0, Lz=1.0, nx=2, ny=2, nz=2)
         tag_to_idx[t] = i
     end
 
-    # --- elements (hex8 = gmsh type 5) ---
+    # Elementos (hex8 = gmsh tipo 5)
     elem_types, _, elem_node_tags = gmsh.model.mesh.getElements(3)
     hex_pos = findfirst(==(5), elem_types)
-    isnothing(hex_pos) && error("No hex8 elements found — check mesh settings")
+    isnothing(hex_pos) && error("No hex8 elements found; check mesh settings")
 
     raw    = elem_node_tags[hex_pos]
     n_elem = length(raw) ÷ 8
@@ -76,12 +81,42 @@ function box_mesh(; Lx=1.0, Ly=1.0, Lz=1.0, nx=2, ny=2, nz=2)
     return HexMesh(nodes_mat, elements)
 end
 
-# Carga una HexMesh desde los CSV exportados por MATLAB (exportMesh.m).
-# Los nodos deben estar en el mismo orden local que ReferenceHex.NODES,
-# que coincide con el convenio de geometry.Element en MATLAB.
+# Reordena los 8 nodos locales de cada elemento al convenio de
+# ReferenceHex.NODES a partir de su posición geométrica dentro de la caja
+# delimitadora del elemento (asume hexaedros alineados con los ejes).
+#
+# geometry.Element en MATLAB usa esta misma convención para el elemento de
+# referencia (ver Element.m: coordinates = [0 0 0; 1 0 0; 1 1 0; 0 1 0; 0 0 1;
+# 1 0 1; 1 1 1; 0 1 1]), pero la numeración local real de
+# meshesHalfFilledTAP2021.mat no la respeta de forma consistente entre
+# elementos (verificado: dos permutaciones distintas conviven en la misma
+# malla). Sin esta corrección el Jacobiano sale rotado en vez de diagonal,
+# igual que el bug de orden de Gmsh documentado en box_mesh.
+const _CORNER_CODE_TO_REF = Dict((0,0,0)=>1, (1,0,0)=>2, (1,1,0)=>3, (0,1,0)=>4,
+                                  (0,0,1)=>5, (1,0,1)=>6, (1,1,1)=>7, (0,1,1)=>8)
+
+function _canonical_node_order(nodes::Matrix{Float64}, conn::AbstractVector{Int})
+    xs = @view nodes[conn, 1]
+    ys = @view nodes[conn, 2]
+    zs = @view nodes[conn, 3]
+    xmid, ymid, zmid = (minimum(xs)+maximum(xs))/2, (minimum(ys)+maximum(ys))/2, (minimum(zs)+maximum(zs))/2
+    perm = zeros(Int, 8)
+    for k in 1:8
+        code = (xs[k] > xmid ? 1 : 0, ys[k] > ymid ? 1 : 0, zs[k] > zmid ? 1 : 0)
+        perm[_CORNER_CODE_TO_REF[code]] = k
+    end
+    return conn[perm]
+end
+
+# Carga una HexMesh desde los CSV exportados por MATLAB (exportMesh.m) y
+# canoniza el orden local de nodos de cada elemento al convenio de
+# ReferenceHex.NODES (ver _canonical_node_order).
 function load_hex_mesh(nodes_csv::String, elems_csv::String)
     nodes    = readdlm(nodes_csv, ',', Float64)
     elements = readdlm(elems_csv, ',', Int)
+    for e in axes(elements, 1)
+        elements[e, :] = _canonical_node_order(nodes, elements[e, :])
+    end
     return HexMesh(nodes, elements)
 end
 

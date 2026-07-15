@@ -1,6 +1,6 @@
 module ReferenceHex
-#= 
-Traducción de: 
+#=
+Traducción de:
 - geometry.Element (constructor 'referenceElement')
 - getEdgeByLocalNodes.m
 - getFaceByLocalEdges.m
@@ -14,7 +14,7 @@ const NODES = [
 ]
 
 # Cada arista apunta en el sentido creciente del eje (ξ, η o ζ) al que es
-# paralela — no "de índice de nodo menor a mayor". Dos aristas paralelas al
+# paralela: no "de índice de nodo menor a mayor". Dos aristas paralelas al
 # mismo eje tienen exactamente la misma dirección cartesiana (p.ej. las
 # aristas 1 y 3, ambas +ξ), porque Q_EDGE=(1-t,t) en DOFs.jl asume que t
 # recorre esa coordenada de referencia de 0 a 1. Por eso las aristas 3=(4,3)
@@ -34,7 +34,7 @@ const FACE_NORMALS = [
 
 # Local node indices (into NODES) for each of the 6 faces.
 # Ordering matches Q_FACE in DOFs.jl:
-#   Face 1 (z=0), 2 (z=1), 3 (y=0), 4 (x=1), 5 (y=1), 6 (x=0).
+# Face 1 (z=0), 2 (z=1), 3 (y=0), 4 (x=1), 5 (y=1), 6 (x=0).
 const FACES = (
     (1, 2, 3, 4),
     (5, 6, 7, 8),

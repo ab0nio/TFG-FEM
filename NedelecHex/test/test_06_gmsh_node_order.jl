@@ -1,15 +1,15 @@
-@testset "Mesh.jl — Permutación de orden de nodos de Gmsh" begin
-    # ── Mecanismo de la permutación, con un array de índices en vez de
-    #    coordenadas (más fácil de leer que test_jacobian.jl) ────────────────
+@testset "Mesh.jl: Permutación de orden de nodos de Gmsh" begin
+    # Mecanismo de la permutación, con un array de índices en vez de
+    # coordenadas (más fácil de leer que test_jacobian.jl)
     # Mesh.jl hace: elements[e,:] = elements[e, [3,7,8,4,2,6,5,1]]
     # es decir: nueva_posición[i] = original[perm[i]].
-    explica("Mecánica de la permutación: nueva_posición[i] = original[perm[i]] — con la identidad como entrada, el resultado es la propia permutación.")
+    explica("Mecánica de la permutación: nueva_posición[i] = original[perm[i]]: con la identidad como entrada, el resultado es la propia permutación.")
     gmsh_slots = [1, 2, 3, 4, 5, 6, 7, 8]
     perm       = [3, 7, 8, 4, 2, 6, 5, 1]
     permuted   = gmsh_slots[perm]
     @test permuted == perm   # con la identidad como entrada, el resultado ES la permutación
 
-    # ── ¿Es realmente necesaria? Comprobación directa contra Gmsh "en crudo" ──
+    # ¿Es realmente necesaria? Comprobación directa contra Gmsh "en crudo"
     # Reproduce box_mesh(nx=1,ny=1,nz=1) pero SIN aplicar la permutación, para
     # verificar (no asumir) que el orden crudo de Gmsh no coincide con
     # ReferenceHex.NODES, y que aplicar la permutación lo corrige.
@@ -47,7 +47,7 @@
     nodes_permuted = nodes_raw[perm]
 
     if TEST_VERBOSE
-        println("\nNodos de entrada (ReferenceHex.NODES — el objetivo que se busca):")
+        println("\nNodos de entrada (ReferenceHex.NODES: el objetivo que se busca):")
         for k in 1:8
             println("  posición $k -> ", NedelecHex.ReferenceHex.NODES[k])
         end
@@ -64,7 +64,7 @@
         println()
     end
 
-    explica("Contra Gmsh en crudo (malla transfinita real, no una suposición): el orden crudo NO coincide con ReferenceHex.NODES; tras aplicar [3,7,8,4,2,6,5,1] coincide exactamente — la permutación es necesaria y suficiente.")
+    explica("Contra Gmsh en crudo (malla transfinita real, no una suposición): el orden crudo NO coincide con ReferenceHex.NODES; tras aplicar [3,7,8,4,2,6,5,1] coincide exactamente: la permutación es necesaria y suficiente.")
 
     # El orden crudo de Gmsh NO coincide con ReferenceHex.NODES...
     @test nodes_raw != NedelecHex.ReferenceHex.NODES
@@ -77,15 +77,14 @@
     @test !isapprox(J_raw, Diagonal(diag(J_raw)), atol=1e-10)         # sin permutar: NO es diagonal
     @test isapprox(J_permuted, Diagonal(diag(J_permuted)), atol=1e-10) # permutado: SÍ es diagonal
 
-    # ── Robustez: la MISMA permutación fija funciona en todos los elementos
-    #    de una malla con varios elementos y tamaños distintos por eje ───────
+    # Robustez: la MISMA permutación fija funciona en todos los elementos
+    # de una malla con varios elementos y tamaños distintos por eje
     explica("Robustez: la MISMA permutación fija vale para los 24 elementos de una malla 3×2×4 con tamaños distintos por eje (J diagonal en todos).")
     mesh   = NedelecHex.Mesh.box_mesh(nx=3, ny=2, nz=4)
     n_elem = size(mesh.elements, 1)
     @test n_elem == 24
     for e in 1:n_elem
-        nidx  = mesh.elements[e, :]
-        nodes = [mesh.nodes[nidx[k], :] for k in 1:8]
+        nodes = NedelecHex.Mesh.element_nodes(mesh, e)
         J     = NedelecHex.BasisEval.compute_jacobian(nodes, [0.5, 0.5, 0.5])
         @test isapprox(J, Diagonal(diag(J)), atol=1e-10)
     end

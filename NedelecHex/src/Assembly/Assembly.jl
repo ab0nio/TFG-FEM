@@ -5,7 +5,7 @@ using SparseArrays
 using ..GaussQuadrature: gauss_hex
 using ..BasisEval: eval_bases_ref, eval_curl_bases_ref,
                    compute_jacobian, piola_transform, curl_piola_transform
-using ..Mesh: HexMesh
+using ..Mesh: HexMesh, element_nodes
 using ..GlobalDOFs: DOFMap
 
 export mass_matrix_element, stiff_matrix_element,
@@ -41,7 +41,7 @@ function stiff_matrix_element(W, curl_monomials, nodes; inv_mu_r=1.0)
     return K
 end
 
-# F_i = ∫ O(x)·Nᵢ(x) dV  — vector de carga local para el término de forzado O
+# F_i = ∫ O(x)·Nᵢ(x) dV. Vector de carga local para el término de forzado O
 # del método de las soluciones manufacturadas (O ya evaluado en coordenadas
 # físicas). Válido para hexaedros con caras alineadas a los ejes (J diagonal
 # y constante en el elemento), que es la única geometría producida por
@@ -68,8 +68,7 @@ function assemble_load_vector(mesh::HexMesh, dof_map::DOFMap, W, mono, O_func)
     n_elem = size(mesh.elements, 1)
     F = zeros(dof_map.n_dofs)
     for e in 1:n_elem
-        nidx  = mesh.elements[e, :]
-        nodes = [mesh.nodes[nidx[k], :] for k in 1:8]
+        nodes = element_nodes(mesh, e)
         dofs  = dof_map.connectivity[e, :]
         Fe    = load_vector_element(W, mono, O_func, nodes)
         for i in 1:54
@@ -100,8 +99,7 @@ function assemble_global_matrices(
     Kvals = Vector{Float64}(undef, total_nz)
 
     for e in 1:n_elem
-        nidx  = mesh.elements[e, :]
-        nodes = [mesh.nodes[nidx[k], :] for k in 1:8]
+        nodes = element_nodes(mesh, e)
         dofs  = dof_map.connectivity[e, :]
 
         Me = mass_matrix_element(W, mono,       nodes; epsilon_r = eps_vec[e])

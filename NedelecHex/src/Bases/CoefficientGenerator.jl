@@ -3,7 +3,7 @@ module CoefficientGenerator
 using LinearAlgebra
 using BenchmarkTools: @benchmark, median, mean, minimum, maximum
 using ..Monomials: build_h2_monomials
-using ..DOFs: evaluate_edge_dof, evaluate_face_dof, evaluate_volume_dof
+using ..DOFs: evaluate_all_dofs
 using Printf
 
 export get_coefficients, run_all_tests
@@ -14,24 +14,7 @@ function get_coefficients()
     G = zeros(N, N)
 
     for j in 1:N
-        mono = monomials[j]
-        row = 1
-
-        for edge_idx in 1:12
-            dofs = evaluate_edge_dof(mono, edge_idx)
-            G[row:row+1, j] = dofs
-            row += 2
-        end
-
-        for face_idx in 1:6
-            dofs = evaluate_face_dof(mono, face_idx)
-            G[row:row+3, j] = dofs
-            row += 4
-        end
-
-        dofs = evaluate_volume_dof(mono)
-        G[row:row+5, j] = dofs
-        row += 6
+        G[:, j] = evaluate_all_dofs(monomials[j])
     end
 
     W = G \ I(N)

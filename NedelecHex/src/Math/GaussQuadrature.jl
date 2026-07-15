@@ -2,6 +2,7 @@ module GaussQuadrature
 
 export gauss_segment, gauss_quadrilateral, gauss_hex
 #no usar valores tabulados
+# N puntos de Gauss integran polinomios de hasta grado 2N-1 exactamente.
 function gauss_segment(order::Int)
     if order <= 1
         weights = [1.0]
@@ -27,7 +28,7 @@ function gauss_quadrilateral(order::Int)
     points = Matrix{Float64}(undef, N, 2)
 
     for i in 1:n
-        idx = (i-1)*n+1:i*n
+        idx = ((i-1)*n+1):(i*n)
         weights[idx] = w1d[i] .* w1d
         points[idx, 1] = p1d
         points[idx, 2] .= p1d[i]
@@ -48,7 +49,7 @@ function gauss_hex(order::Int)
     points = Matrix{Float64}(undef, N, 3)
 
     for i in 1:n1d
-        idx = (i-1)*n2d+1:i*n2d
+        idx = ((i-1)*n2d+1):(i*n2d)
         weights[idx] = w1d[i] .* w2d
         points[idx, 1:2] = p2d
         points[idx, 3] .= p1d[i]
