@@ -1,9 +1,0 @@
-{
-    "files.watcherExclude": {
-        "**/target": true
-    },
-    "manim.manimPath": "/home/abonio/TFG-FEM/visualization/manim/.venv/bin/manim",
-    "manim.pythonPath": "/home/abonio/TFG-FEM/visualization/manim/.venv/bin/python",
-    "manim.defaultRenderArgs": "-pql",
-    "julia.environmentPath": "/home/abonio/TFG-FEM/NedelecHex"
-}

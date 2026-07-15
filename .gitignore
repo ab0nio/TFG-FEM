@@ -30,3 +30,6 @@ matlab/
 
 # Guía local de asistencia (no se versiona)
 CLAUDE.md
+
+# Configuración local del editor (rutas absolutas de esta máquina)
+.vscode/
