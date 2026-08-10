@@ -1,3 +1,5 @@
+# Prueba CoefficientGenerator.jl. MATLAB: +bases/@SystematicBases/getCoefficients.m;
+# la Tabla II de referencia sale de tableReferenceCoefficients.mat (mainEvaluateCoefficients.m:9).
 @testset "CoefficientGenerator.jl: Matriz G completa" begin
     G = G_REF
 
@@ -7,7 +9,7 @@
     @test cond(G) < 1e5
     explica("Unisolvencia: rank(G)(número de filas linealmente independientes) = $(rank(G))
     si es 54, los  DOFs determinan unívocamente cada campo de H₂
-    cond(G)(número de condicionamiento(mide cuanto la matriz amplifica el error)) = $(round(cond(G), digits=1)) ≪ 1/eps ≈ 1e16 ⇒ W = G⁻¹ es numéricamente fiable.")
+    cond(G)(número de condicionamiento(mide cuánto la matriz amplifica el error)) = $(round(cond(G), digits=1)) ≪ 1/eps ≈ 1e16 ⇒ W = G⁻¹ es numéricamente fiable.")
 end
 @testset "CoefficientGenerator.jl: Coeficientes W vs Tabla II del paper" begin
     W, G = W_REF, G_REF

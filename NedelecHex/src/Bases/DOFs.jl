@@ -1,4 +1,7 @@
 module DOFs
+# Equivalente en MATLAB: +bases/@SystematicBases/evaluateEdgeDOF.m, evaluateFaceDOF.m, evaluateVolumeDOF.m. 
+# y los polinomios de Lagrange salen de:
+# +bases/@SystematicBases/SystematicBases.m (qRefEdge 103-105,qRefRectangular 110-144, qRefHexa 147-161).
 
 using LinearAlgebra
 using ..GaussQuadrature: gauss_segment, gauss_quadrilateral, gauss_hex
@@ -6,20 +9,17 @@ using ..CoordinateTransforms: transform_2d_to_3d
 using ..ReferenceHex: NODES, EDGES
 
 export evaluate_edge_dof, evaluate_face_dof, evaluate_volume_dof,
-       evaluate_all_dofs
-
-# Los productos u·q se calculan como sum(u .* q) (bilineal, sin conjugar) en
-# vez de LinearAlgebra.dot, que conjuga su primer argumento: así los
-# funcionales valen también para campos complejos (fasores), donde la
-# definición del DOF exige el producto bilineal, no el sesquilineal.
+    evaluate_all_dofs
 
 # Polinomios de Lagrange en [0,1] para las aristas
+# MATLAB: SystematicBases.m:103-105 (qRefEdge)
 const Q_EDGE = (
     t -> 1.0 - t,
     t -> t
 )
 
 # Vectores tangentes a cada cara (ec. 7): 6 caras x 4 vectores
+# MATLAB: SystematicBases.m:110-144 (qRefRectangular)
 const Q_FACE = (
     # Cara 1 (z=0): varía x, y
     (
@@ -66,6 +66,7 @@ const Q_FACE = (
 )
 
 # Vectores volumétricos (ec. 8): Lagrange en las tres coordenadas
+# MATLAB: SystematicBases.m:147-161 (qRefHexa)
 const Q_VOL = (
     pt -> [1.0 - pt[1], 0.0, 0.0],
     pt -> [pt[1], 0.0, 0.0],
@@ -76,6 +77,7 @@ const Q_VOL = (
 )
 
 # g_e(u) = ∫₀¹ (u(γ(t)) · τ̂) · q(t) · |J_e| dt
+# MATLAB: +bases/@SystematicBases/evaluateEdgeDOF.m:20-33
 function evaluate_edge_dof(monomial, edge_idx::Int)
     n1, n2 = EDGES[edge_idx]
     p1 = Float64.(NODES[n1])
@@ -102,10 +104,11 @@ function evaluate_edge_dof(monomial, edge_idx::Int)
 end
 
 # g_f(u) = ∫_f u · q dS   (dot directo, q ya es tangente a la cara)
+# MATLAB: +bases/@SystematicBases/evaluateFaceDOF.m:21-34
 function evaluate_face_dof(monomial, face_idx::Int)
     weights, points = gauss_quadrilateral(4)
     det_J2D = 1.0    # hacerlo más general, en vez de Hardcodear 1
-    pt0  = transform_2d_to_3d(points[1, :], face_idx)
+    pt0 = transform_2d_to_3d(points[1, :], face_idx)
     dofs = zeros(typeof(sum(monomial(pt0) .* Q_FACE[face_idx][1](pt0))), 4)
 
     for qi in 1:4
@@ -121,10 +124,11 @@ function evaluate_face_dof(monomial, face_idx::Int)
 end
 
 # g_H(u) = ∫_H u · q dV
+# MATLAB: +bases/@SystematicBases/evaluateVolumeDOF.m:21-33
 function evaluate_volume_dof(monomial)
     weights, points = gauss_hex(4)
     det_J = 1.0    # jacobiano = I₃ en el elemento de referencia
-    pt0  = points[1, :]
+    pt0 = points[1, :]
     dofs = zeros(typeof(sum(monomial(pt0) .* Q_VOL[1](pt0))), 6)
 
     for qi in 1:6
@@ -139,12 +143,13 @@ function evaluate_volume_dof(monomial)
 end
 
 # Aplica los 54 funcionales a un campo sobre el elemento de referencia, en el
-# orden canónico (12 aristas × 2, 6 caras × 4, 6 de volumen): el mismo orden
-# de filas de la matriz G (Fig. 2 del paper) y de la conectividad global.
+# siguiente orden (12 aristas × 2, 6 caras × 4, 6 de volumen): el mismo orden
+# de filas de la matriz G (Fig. 2 del paper).
+# MATLAB: en +bases/@SystematicBases/getCoefficients.m:16-36
 function evaluate_all_dofs(field)
     edges = reduce(vcat, evaluate_edge_dof(field, e) for e in 1:12)
     faces = reduce(vcat, evaluate_face_dof(field, f) for f in 1:6)
     return vcat(edges, faces, evaluate_volume_dof(field))
 end
 
-end  # module DOFs
+end

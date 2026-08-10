@@ -1,3 +1,5 @@
+# Prueba Monomials.jl (espacio H₂). MATLAB: +bases/getPolynomials.m y el curl
+# simbólico de +bases/@SystematicBases/SystematicBases.m:79-82 (sin test dedicado).
 @testset "Monomials.jl: Los 54 monomios vectoriales de H₂" begin
     mono, curl_mono = MONO, CURL_MONO
 
@@ -40,7 +42,7 @@
 
     fixed = [0.37, 0.61, 0.83]
     h = 0.05
-    explica("Deriva de orden 2 en la componente evaluada y de orden 3 en las demás y comprueba que todo de 0")
+    explica("Deriva de orden 2 en la componente evaluada y de orden 3 en las demás y comprueba que todo dé 0")
 
     # Bloque ξ̂ (1-18): grado ≤1 en ξ, ≤2 en η y ζ
     for j in 1:18
@@ -86,6 +88,6 @@
     end
     if TEST_VERBOSE
         maxdif = maximum(norm(curl_mono[j](pt_test) .- fd_curl(mono[j], pt_test)) for j in 1:54)
-        explica("Comparo el curl analítico (el que usamos de curl_mono) sea el mismo que el de la definicion de la formula: ∇×f = (∂f_z/∂y - ∂f_y/∂z, ∂f_x/∂z - ∂f_z/∂x, ∂f_y/∂x - ∂f_x/∂y) evaluado con diferencias finitas centradas. La diferencia máxima es $maxdif.")
+        explica("Comparo el curl analítico (el que usamos de curl_mono) sea el mismo que el de la definición de la fórmula: ∇×f = (∂f_z/∂y - ∂f_y/∂z, ∂f_x/∂z - ∂f_z/∂x, ∂f_y/∂x - ∂f_x/∂y) evaluado con diferencias finitas centradas. La diferencia máxima es $maxdif.")
     end
 end

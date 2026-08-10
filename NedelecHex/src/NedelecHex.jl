@@ -1,4 +1,7 @@
 module NedelecHex
+# Equivalente en MATLAB: no hay un módulo único; los paquetes +bases/+geometry/
+# +math/+assembly/+settings se orquestan desde los drivers mainGenerateCoefficients.m,
+# mainEvaluateCoefficients.m y mainHalfFilled.m.
 include("Geometry/ReferenceHex.jl")            # sin dependencias
 include("Geometry/Mesh.jl")                    # sin dependencias del paquete
 include("Math/GaussQuadrature.jl")             # sin dependencias

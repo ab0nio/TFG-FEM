@@ -1,3 +1,5 @@
+# Prueba BasisEval.jl reproduciendo la comparación triple de
+# mainEvaluateCoefficients.m:30-39 (simbólico Tabla II / código MATLAB / Julia).
 @testset "BasisEval.jl: Evaluación de las 54 bases vs MATLAB (equivalente a mainEvaluateCoefficients.m)" begin
     # mainEvaluateCoefficients.m evalúa las 54 bases reales en el punto central
     # del hexaedro de referencia (0.5, 0.5, 0.5) de tres formas: (1) simbólico
@@ -11,9 +13,9 @@
     J = NedelecHex.BasisEval.compute_jacobian(nodes, pt)
     N_phys = NedelecHex.BasisEval.piola_transform(N_ref, J)
 
-    explica("Lo que hemos medido antes , el jacobiano en el hexahedro de referencia es J = $(J).
-    mainEvaluateCoefficients.m evalúa las 54 bases en el punto central del hexahedro de referencia
-    asi que hacemos lo mismo y comparamos")
+    explica("Lo que hemos medido antes , el jacobiano en el hexaedro de referencia es J = $(J).
+    mainEvaluateCoefficients.m evalúa las 54 bases en el punto central del hexaedro de referencia
+    así que hacemos lo mismo y comparamos")
     @test isapprox(J, I(3), atol=1e-12)
 
     # Contra la Tabla II simbólica del paper

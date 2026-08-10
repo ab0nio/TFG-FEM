@@ -1,0 +1,569 @@
+%==========================================================================
+%  BIBLIOGRAFÍA - TFG "Elementos finitos Nédélec de segundo orden
+%  curl-conformes en hexaedros" (UC3M)
+%
+%  Estilo: biblatex + biber, style=ieee -> las referencias se ordenan por
+%  orden de APARICIÓN en el texto, no alfabéticamente.
+%
+%  Organización del archivo:
+%    1. Referencia principal y código asociado
+%    2. Fundamentos: la familia de elementos de Nédélec
+%    3. Antecedentes del grupo (UC3M)
+%    4. Bases de alto orden: jerárquicas vs. interpolatorias
+%    5. Elementos de alto orden en hexaedros
+%    6. Ensamblaje, orientación y grados de libertad
+%    7. Verificación y validación de código
+%    8. Libros de texto y teoría
+%    9. Herramientas
+%   10. Rendimiento Julia/MATLAB y trabajos previos en el grupo
+%
+%  Los números [n] de los comentarios son el número de referencia en el
+%  paper de Amor-Martin y Garcia-Castillo (2023), por si quieres rastrearlas.
+%==========================================================================
+
+
+%--------------------------------------------------------------------------
+% 1. REFERENCIA PRINCIPAL Y CÓDIGO ASOCIADO
+%--------------------------------------------------------------------------
+
+@article{amor2023hexahedral,
+	author    = {Amor-Martin, Adrian and Garcia-Castillo, Luis Emilio},
+	title     = {Second-Order {N\'ed\'elec} Curl-Conforming Hexahedral Element for Computational Electromagnetics},
+	journal   = {IEEE Transactions on Antennas and Propagation},
+	volume    = {71},
+	number    = {1},
+	pages     = {854--868},
+	year      = {2023},
+	month     = jan,
+	doi       = {10.1109/TAP.2022.3216554},
+	keywords  = {Curl-conforming basis functions; finite-element analysis; hexahedra; higher-order; Nédélec},
+}
+
+% [26] Código de referencia publicado por los autores del paper
+@misc{amor2022zenodo,
+	author       = {Amor-Martin, Adrian and Garcia-Castillo, Luis Emilio},
+	title        = {Aamorm/{SystematicBasesForHexahedron}: First Version},
+	howpublished = {Zenodo},
+	type         = {Tech. Rep.},
+	year         = {2022},
+	month        = feb,
+	url          = {https://github.com/aamorm/SystematicBasesForHexahedron},
+	urldate      = {2026-08-02},
+}
+
+
+%--------------------------------------------------------------------------
+% 2. FUNDAMENTOS: LA FAMILIA DE ELEMENTOS DE NÉDÉLEC
+%--------------------------------------------------------------------------
+
+% [1] Artículo fundacional: define los elementos mixtos en R^3
+@article{nedelec1980,
+	author  = {Nedelec, J. C.},
+	title   = {Mixed Finite Elements in {$\mathbb{R}^3$}},
+	journal = {Numerische Mathematik},
+	volume  = {35},
+	number  = {3},
+	pages   = {315--341},
+	year    = {1980},
+	month   = sep,
+}
+
+% [2] Segunda familia de Nédélec
+@article{nedelec1986,
+	author  = {N{\'e}d{\'e}lec, J. C.},
+	title   = {A New Family of Mixed Finite Elements in {$\mathbb{R}^3$}},
+	journal = {Numerische Mathematik},
+	volume  = {50},
+	number  = {1},
+	pages   = {57--81},
+	year    = {1986},
+}
+
+% [10] Justifica la elección de espacio mixto frente a orden completo
+@article{davidson2003,
+	author  = {Davidson, D. B.},
+	title   = {An Evaluation of Mixed-Order Versus Full-Order Vector Finite Elements},
+	journal = {IEEE Transactions on Antennas and Propagation},
+	volume  = {51},
+	number  = {9},
+	pages   = {2430--2441},
+	year    = {2003},
+	month   = sep,
+}
+
+
+%--------------------------------------------------------------------------
+% 3. ANTECEDENTES DEL GRUPO (UC3M)
+%--------------------------------------------------------------------------
+
+% [4] Versión tetraédrica: el antecedente directo del método sistemático
+@article{garciacastillo2000,
+	author  = {Garc{\'i}a-Castillo, Luis Emilio and Salazar-Palma, Magdalena},
+	title   = {Second-Order {N\'ed\'elec} Tetrahedral Element for Computational Electromagnetics},
+	journal = {International Journal of Numerical Modelling: Electronic Networks, Devices and Fields},
+	volume  = {13},
+	number  = {2-3},
+	pages   = {261--287},
+	year    = {2000},
+}
+
+% [8] Versión prismática
+@article{amor2016prismatic,
+	author  = {Amor-Martin, Adrian and Garcia-Castillo, Luis Emilio and Garcia-Donoro, Daniel},
+	title   = {Second-Order {N\'ed\'elec} Curl-Conforming Prismatic Element for Computational Electromagnetics},
+	journal = {IEEE Transactions on Antennas and Propagation},
+	volume  = {64},
+	number  = {10},
+	pages   = {4384--4395},
+	year    = {2016},
+	month   = oct,
+}
+
+% [34] Construcción y ENSAMBLAJE de elementos curl-conformes de alto orden
+@article{amor2019assembly,
+	author  = {Amor-Martin, Adrian and Garcia-Castillo, Luis Emilio},
+	title   = {Construction of Higher-Order Curl-Conforming Finite Elements and Its Assembly},
+	journal = {International Journal of RF and Microwave Computer-Aided Engineering},
+	volume  = {29},
+	number  = {8},
+	pages   = {e21753},
+	year    = {2019},
+}
+
+% El simulador propio del grupo, del que el tutor de este TFG es coautor.
+% Es la cita clave de la MOTIVACIÓN: describe HOFEM como código escrito desde
+% cero en Fortran moderno con paradigma orientado a objetos, y con elementos
+% curl-conformes de alto orden de la primera familia de Nédélec (tetraedros y
+% prismas). De ahí el interés en reimplementar funcionalidad en Julia.
+% VERIFICAR EN IEEE XPLORE el nombre exacto del congreso y las páginas: del
+% PDF solo consta "978-1-4799-6281-5/15 (c)2015 IEEE" y las marcas de sesión
+% de pósteres PS-1/PS-3.
+@inproceedings{garciadonoro2015hofem,
+	author    = {Garcia-Do{\~n}oro, Daniel and Martinez-Fernandez, Ignacio and Garc{\'i}a-Castillo, Luis Emilio and Salazar-Palma, Magdalena},
+	title     = {{HOFEM}: A Higher Order Finite Element Method Electromagnetic Simulator},
+	booktitle = {2015 IEEE International Conference on Computational Electromagnetics (ICCEM)},
+	pages     = {10--12},
+	year      = {2015},
+}
+
+
+%--------------------------------------------------------------------------
+% 4. BASES DE ALTO ORDEN: JERÁRQUICAS VS. INTERPOLATORIAS
+%--------------------------------------------------------------------------
+
+% [3] Bases jerárquicas de orden arbitrario (la alternativa a las sistemáticas)
+@article{webb1999,
+	author  = {Webb, J. P.},
+	title   = {Hierarchal Vector Basis Functions of Arbitrary Order for Triangular and Tetrahedral Finite Elements},
+	journal = {IEEE Transactions on Antennas and Propagation},
+	volume  = {47},
+	number  = {8},
+	pages   = {1244--1253},
+	year    = {1999},
+	month   = aug,
+}
+
+% [13] Bases interpolatorias de alto orden
+@article{graglia1997,
+	author  = {Graglia, R. D. and Wilton, D. R. and Peterson, A. F.},
+	title   = {Higher Order Interpolatory Vector Bases for Computational Electromagnetics},
+	journal = {IEEE Transactions on Antennas and Propagation},
+	volume  = {45},
+	number  = {3},
+	pages   = {329--342},
+	year    = {1997},
+	month   = mar,
+}
+
+% [15] Condicionamiento de las matrices con bases interpolatorias
+@article{rieben2004,
+	author  = {Rieben, R. N. and White, D. A. and Rodrigue, G. H.},
+	title   = {Improved Conditioning of Finite Element Matrices Using New High-Order Interpolatory Bases},
+	journal = {IEEE Transactions on Antennas and Propagation},
+	volume  = {52},
+	number  = {10},
+	pages   = {2675--2683},
+	year    = {2004},
+	month   = oct,
+}
+
+% [18] Ortogonalidad máxima y condicionamiento de la matriz de Gram
+@article{bogaert2014,
+	author  = {Bogaert, I. and Andriulli, F. P.},
+	title   = {Maximally Orthogonal High-Order Basis Functions Have a Well-Conditioned {Gram} Matrix},
+	journal = {IEEE Transactions on Antennas and Propagation},
+	volume  = {62},
+	number  = {8},
+	pages   = {4096--4104},
+	year    = {2014},
+	month   = aug,
+}
+
+
+%--------------------------------------------------------------------------
+% 5. ELEMENTOS DE ALTO ORDEN EN HEXAEDROS
+%--------------------------------------------------------------------------
+
+% [12] Elementos jerárquicos curl-conformes en cuadriláteros y hexaedros
+@article{graglia2011,
+	author  = {Graglia, R. D. and Peterson, A. F.},
+	title   = {Hierarchical Curl-Conforming {N\'ed\'elec} Elements for Quadrilateral and Brick Cells},
+	journal = {IEEE Transactions on Antennas and Propagation},
+	volume  = {59},
+	number  = {8},
+	pages   = {2766--2773},
+	year    = {2011},
+	month   = aug,
+}
+
+% [14] Elementos hexaédricos curvos jerárquicos
+@article{ilic2003,
+	author  = {Ilic, M. M. and Notaros, B. M.},
+	title   = {Higher Order Hierarchical Curved Hexahedral Vector Finite Elements for Electromagnetic Modeling},
+	journal = {IEEE Transactions on Microwave Theory and Techniques},
+	volume  = {51},
+	number  = {3},
+	pages   = {1026--1033},
+	year    = {2003},
+	month   = mar,
+}
+
+% [21] Elementos de arista óptimos de alto orden en hexaedros, prismas y pirámides
+@article{bergot2013,
+	author  = {Bergot, M. and Durufl{\'e}, M.},
+	title   = {High-Order Optimal Edge Elements for Pyramids, Prisms and Hexahedra},
+	journal = {Journal of Computational Physics},
+	volume  = {232},
+	number  = {1},
+	pages   = {189--213},
+	year    = {2013},
+	month   = jan,
+}
+
+% [22] Base matemática: por qué el hexaedro no es trivial (mapeo no afín)
+@article{falk2011,
+	author  = {Falk, R. S. and Gatto, P. and Monk, P.},
+	title   = {Hexahedral {$H(\mathrm{div})$} and {$H(\mathrm{curl})$} Finite Elements},
+	journal = {ESAIM: Mathematical Modelling and Numerical Analysis},
+	volume  = {45},
+	number  = {1},
+	pages   = {115--143},
+	year    = {2011},
+}
+
+
+%--------------------------------------------------------------------------
+% 6. ENSAMBLAJE, ORIENTACIÓN Y GRADOS DE LIBERTAD
+%--------------------------------------------------------------------------
+
+% [31] Orientación de aristas en mallas no estructuradas
+@article{agelek2018,
+	author  = {Agelek, R. and Anderson, M. and Bangerth, W. and Barth, W. L.},
+	title   = {On Orienting Edges of Unstructured Two- and Three-Dimensional Meshes},
+	journal = {ACM Transactions on Mathematical Software},
+	volume  = {44},
+	number  = {1},
+	pages   = {1--22},
+	year    = {2018},
+	month   = mar,
+}
+
+% [24] Ensamblaje eficiente de elementos H(div) y H(curl) conformes
+@article{rognes2009,
+	author  = {Rognes, M. E. and Kirby, R. C. and Logg, A.},
+	title   = {Efficient Assembly of {$H(\mathrm{div})$} and {$H(\mathrm{curl})$} Conforming Finite Elements},
+	journal = {SIAM Journal on Scientific Computing},
+	volume  = {31},
+	number  = {6},
+	pages   = {4130--4151},
+	year    = {2009},
+	month   = nov,
+}
+
+% [25] Grados de libertad y generadores en dualidad (la matriz G del método)
+@article{bonazzoli2017,
+	author  = {Bonazzoli, M. and Rapetti, F.},
+	title   = {High-Order Finite Elements in Numerical Electromagnetism: Degrees of Freedom and Generators in Duality},
+	journal = {Numerical Algorithms},
+	volume  = {74},
+	number  = {1},
+	pages   = {111--136},
+	year    = {2017},
+	month   = jan,
+}
+
+% [7] Funciones de forma con la orientación embebida, para todas las formas
+@article{fuentes2015,
+	author  = {Fuentes, F. and Keith, B. and Demkowicz, L. and Nagaraj, S.},
+	title   = {Orientation Embedded High Order Shape Functions for the Exact Sequence Elements of All Shapes},
+	journal = {Computers \& Mathematics with Applications},
+	volume  = {70},
+	number  = {4},
+	pages   = {353--458},
+	year    = {2015},
+	month   = aug,
+}
+
+% [20] Implementación general de elementos curl-conformes h- y p-adaptativos
+@article{olm2019,
+	author  = {Olm, M. and Badia, S. and Mart{\'i}n, A. F.},
+	title   = {On a General Implementation of {$h$}- and {$p$}-Adaptive Curl-Conforming Finite Elements},
+	journal = {Advances in Engineering Software},
+	volume  = {132},
+	pages   = {74--91},
+	year    = {2019},
+	month   = jun,
+}
+
+
+%--------------------------------------------------------------------------
+% 7. VERIFICACIÓN Y VALIDACIÓN DE CÓDIGO
+%--------------------------------------------------------------------------
+
+% [35] Referencia canónica del vocabulario verificación vs. validación
+@book{roache1998,
+	author    = {Roache, P. J.},
+	title     = {Verification and Validation in Computational Science and Engineering},
+	volume    = {895},
+	publisher = {Hermosa},
+	address   = {Albuquerque, NM, USA},
+	year      = {1998},
+}
+
+% [27] Proceso de verificación de código FEM electromagnético (grupo UC3M)
+@article{garciadonoro2016,
+	author  = {Garcia-Do{\~n}oro, Daniel and Garc{\'i}a-Castillo, Luis Emilio and Ting, S. W.},
+	title   = {Verification Process of Finite-Element Method Code for Electromagnetics: Using the Method of Manufactured Solutions},
+	journal = {IEEE Antennas and Propagation Magazine},
+	volume  = {58},
+	number  = {2},
+	pages   = {28--38},
+	year    = {2016},
+	month   = apr,
+}
+
+% [28] Banco de pruebas de precisión arbitraria para simulaciones electromagnéticas
+@article{amor2020testbench,
+	author  = {Amor-Martin, Adrian},
+	title   = {A Testbench of Arbitrary Accuracy for Electromagnetic Simulations},
+	journal = {International Journal of RF and Microwave Computer-Aided Engineering},
+	volume  = {30},
+	number  = {10},
+	pages   = {e22342},
+	year    = {2020},
+	month   = oct,
+}
+
+% [36] Método de soluciones manufacturadas aplicado al electromagnetismo
+@inproceedings{marchand2011,
+	author    = {Marchand, R. and Davidson, D. B.},
+	title     = {The Method of Manufactured Solutions for the Verification of Computational Electromagnetics},
+	booktitle = {Proceedings of the International Conference on Electromagnetics in Advanced Applications (ICEAA)},
+	pages     = {487--490},
+	year      = {2011},
+	month     = sep,
+}
+
+
+%--------------------------------------------------------------------------
+% 8. LIBROS DE TEXTO Y TEORÍA
+%--------------------------------------------------------------------------
+
+% [30] Referencia estándar de FEM en electromagnetismo (formulación débil,
+%      problema de autovalores en cavidades, modos espurios)
+@book{jin2015,
+	author    = {Jin, Jian-Ming},
+	title     = {The Finite Element Method in Electromagnetics},
+	edition   = {3},
+	publisher = {Wiley},
+	address   = {Hoboken, NJ, USA},
+	year      = {2015},
+}
+
+% [29] Definición matemática de elemento finito como terna (K, P, Sigma):
+%      la unisolvencia que se comprueba al invertir G
+@book{ciarlet2002,
+	author    = {Ciarlet, P. G.},
+	title     = {The Finite Element Method for Elliptic Problems},
+	series    = {Classics in Applied Mathematics},
+	volume    = {40},
+	publisher = {SIAM},
+	address   = {Philadelphia, PA, USA},
+	year      = {2002},
+}
+
+% [39] Libro del grupo de la UC3M
+@book{salazarpalma1998,
+	author    = {Salazar-Palma, Magdalena and Sarkar, Tapan K. and Garc{\'i}a-Castillo, Luis Emilio and Roy, T. and Djordjevic, A. R.},
+	title     = {Iterative and Self-Adaptive Finite-Elements in Electromagnetic Modeling},
+	publisher = {Artech House},
+	address   = {Norwood, MA, USA},
+	year      = {1998},
+}
+
+% [40] Teoría matemática del método de los elementos finitos
+@book{oden2012,
+	author    = {Oden, J. T. and Reddy, J. N.},
+	title     = {An Introduction to the Mathematical Theory of Finite Elements},
+	publisher = {Courier Corporation},
+	address   = {Chelmsford, MA, USA},
+	year      = {2012},
+}
+
+% Libro disponible en documentation/ : introducción general al MEF
+@book{reddy1993,
+	author    = {Reddy, J. N.},
+	title     = {An Introduction to the Finite Element Method},
+	edition   = {2},
+	series    = {McGraw-Hill Series in Mechanical Engineering},
+	publisher = {McGraw-Hill},
+	address   = {New York, NY, USA},
+	year      = {1993},
+	isbn      = {0-07-051355-4},
+}
+
+% Introducción divulgativa a la formulación débil
+@online{liu2014weakform,
+	author       = {Liu, Chien},
+	title        = {A Brief Introduction to the Weak Form},
+	organization = {COMSOL Blog},
+	date         = {2014-11-19},
+	url          = {https://www.comsol.com/blogs/brief-introduction-weak-form/},
+	urldate      = {2026-08-02},
+}
+
+
+%--------------------------------------------------------------------------
+% 9. HERRAMIENTAS
+%--------------------------------------------------------------------------
+
+% [37] Generador de mallas utilizado en la implementación en Julia
+@article{geuzaine2009gmsh,
+	author  = {Geuzaine, Christophe and Remacle, Jean-Fran{\c{c}}ois},
+	title   = {Gmsh: A 3-{D} Finite Element Mesh Generator with Built-in Pre- and Post-Processing Facilities},
+	journal = {International Journal for Numerical Methods in Engineering},
+	volume  = {79},
+	number  = {11},
+	pages   = {1309--1331},
+	year    = {2009},
+	month   = sep,
+}
+
+
+%--------------------------------------------------------------------------
+% 10. RENDIMIENTO JULIA/MATLAB Y TRABAJOS PREVIOS EN EL GRUPO
+%--------------------------------------------------------------------------
+
+% Trabajo Fin de Máster dirigido por el mismo tutor
+@thesis{grijalba2024tfm,
+	author      = {Grijalba Pe{\~n}a, Andr{\'e}s},
+	title       = {M{\'e}todo de Elementos Finitos para an{\'a}lisis de estructuras peri{\'o}dicas},
+	type        = {Trabajo Fin de M{\'a}ster},
+	institution = {Universidad Carlos III de Madrid},
+	address     = {Legan{\'e}s, Espa{\~n}a},
+	date        = {2024-09},
+}
+
+% Informe interno: comparativa de rendimiento MATLAB vs. Julia
+@report{nunez2023julia,
+	author      = {N{\'u}{\~n}ez Dom{\'i}nguez, Mario},
+	title       = {Comparaci{\'o}n de rendimiento entre {Matlab} y {Julia}},
+	type        = {Informe t{\'e}cnico},
+	institution = {Universidad Carlos III de Madrid},
+	date        = {2023-06},
+}
+
+% Informe interno: comparativa de rendimiento Julia vs. Python
+@report{mohedano2023julia,
+	author      = {Mohedano Rodr{\'i}guez, Daniel},
+	title       = {Comparaci{\'o}n de rendimiento entre {Julia} y {Python}},
+	type        = {Informe t{\'e}cnico},
+	institution = {Universidad Carlos III de Madrid},
+	date        = {2023-07-20},
+}
+
+
+%--------------------------------------------------------------------------
+% 11. HUECOS QUE EL PAPER NO CUBRE Y ESTE TFG SÍ NECESITA
+%
+%    El paper de 2023 no cita nada de: teoría matemática de H(curl) y
+%    transformaciones de Piola, modos espurios en problemas de autovalores,
+%    la solución analítica de la cavidad semillena, ni el lenguaje y el
+%    solver que usa la implementación. Estas entradas cubren esos huecos.
+%
+%    AVISO: revisa edición, páginas y año en el catálogo de la Biblioteca
+%    antes de citarlas; se han rellenado con los datos habituales de cada
+%    obra, no consultando el ejemplar.
+%--------------------------------------------------------------------------
+
+% Teoría de H(curl), transformaciones de Piola y análisis de convergencia:
+% LA referencia matemática para justificar el mapeo covariante
+@book{monk2003,
+	author    = {Monk, Peter},
+	title     = {Finite Element Methods for {Maxwell}'s Equations},
+	series    = {Numerical Mathematics and Scientific Computation},
+	publisher = {Oxford University Press},
+	address   = {Oxford, UK},
+	year      = {2003},
+}
+
+% Visión de formas diferenciales / elementos de Whitney; por qué los DOF son
+% integrales sobre aristas, caras y volumen
+@book{bossavit1998,
+	author    = {Bossavit, Alain},
+	title     = {Computational Electromagnetism: Variational Formulations, Complementarity, Edge Elements},
+	publisher = {Academic Press},
+	address   = {San Diego, CA, USA},
+	year      = {1998},
+}
+
+% Aproximación por elementos finitos de problemas de autovalores: el marco
+% teórico de los modos espurios y del núcleo de K (curl = 0)
+@article{boffi2010,
+	author  = {Boffi, Daniele},
+	title   = {Finite Element Approximation of Eigenvalue Problems},
+	journal = {Acta Numerica},
+	volume  = {19},
+	pages   = {1--120},
+	year    = {2010},
+}
+
+% Solución analítica de la guía/cavidad parcialmente rellena: de aquí sale la
+% ecuación trascendente de resonancia del benchmark
+@book{harrington2001,
+	author    = {Harrington, Roger F.},
+	title     = {Time-Harmonic Electromagnetic Fields},
+	publisher = {IEEE Press / Wiley-Interscience},
+	address   = {New York, NY, USA},
+	year      = {2001},
+}
+
+@book{pozar2012,
+	author    = {Pozar, David M.},
+	title     = {Microwave Engineering},
+	edition   = {4},
+	publisher = {Wiley},
+	address   = {Hoboken, NJ, USA},
+	year      = {2012},
+}
+
+% El lenguaje de la implementación: cita obligada si comparas rendimiento
+@article{bezanson2017julia,
+	author  = {Bezanson, Jeff and Edelman, Alan and Karpinski, Stefan and Shah, Viral B.},
+	title   = {Julia: A Fresh Approach to Numerical Computing},
+	journal = {SIAM Review},
+	volume  = {59},
+	number  = {1},
+	pages   = {65--98},
+	year    = {2017},
+}
+
+% El solver que usan LOS DOS lenguajes (eigs de MATLAB y Arpack.jl):
+% explica por qué el tiempo de solver es el mismo en ambos
+@book{lehoucq1998arpack,
+	author    = {Lehoucq, R. B. and Sorensen, D. C. and Yang, C.},
+	title     = {{ARPACK} Users' Guide: Solution of Large-Scale Eigenvalue Problems with Implicitly Restarted {Arnoldi} Methods},
+	publisher = {SIAM},
+	address   = {Philadelphia, PA, USA},
+	year      = {1998},
+}

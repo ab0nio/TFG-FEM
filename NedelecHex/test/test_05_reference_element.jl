@@ -1,10 +1,13 @@
+# Prueba BasisEval.jl + Assembly.jl en el elemento de referencia. MATLAB:
+# computeJacobianMatrix.m (Jacobiano), getCoefficients.m (base dual),
+# getStiffMatrix.m/getMassMatrix.m (Kᵉ/Mᵉ).
 @testset "BasisEval.jl: Jacobiano del elemento de referencia" begin
     nodes = NedelecHex.ReferenceHex.NODES
 
     # Para el hexaedro de referencia [0,1]³ con nodos exactamente en NODES,
     # el mapeo isoparamétrico es la identidad, así que J debe ser I₃ en
     # cualquier punto de referencia.
-    explica("El Jacobiano en el Hexahedro de Referencia (al no estar deformado debe ser la identidad)
+    explica("El Jacobiano en el Hexaedro de Referencia (al no estar deformado debe ser la identidad)
     J = I₃, det J = 1 y J⁻ᵀ = I₃ en cualquier punto (se muestrean 4, incluidas dos esquinas).")
     for pt in ([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.25, 0.75, 0.5])
         J = NedelecHex.BasisEval.compute_jacobian(nodes, pt)

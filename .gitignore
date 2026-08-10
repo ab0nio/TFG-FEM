@@ -30,3 +30,4 @@ matlab/
 
 # Configuración local del editor (rutas absolutas de esta máquina)
 .vscode/
+.aider*

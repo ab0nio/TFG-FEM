@@ -1,4 +1,6 @@
 module CoefficientGenerator
+# Equivalente en MATLAB: +bases/@SystematicBases/getCoefficients.m
+# (y mainGenerateCoefficients.m mas o menos).
 
 using LinearAlgebra
 using BenchmarkTools: @benchmark, median, mean, minimum, maximum
@@ -8,6 +10,7 @@ using Printf
 
 export get_coefficients, run_all_tests
 
+# MATLAB: getCoefficients.m (matriz G líneas 16-36; W = G\I línea 39)
 function get_coefficients()
     monomials = build_h2_monomials()
     N = length(monomials)
@@ -21,6 +24,7 @@ function get_coefficients()
     return W, G
 end
 
+#Escribe las tablas en el mismo formato de matlab y las compara.
 function run_all_tests(; verbose::Bool=true)
     W, G = get_coefficients()
 
@@ -76,7 +80,7 @@ function run_all_tests(; verbose::Bool=true)
         println("Tabla W guardada en: $(joinpath(output_dir, "tabla_W.txt"))")
     end
 
-    # Benchmark get_coefficients() and append results to the file
+    # Mide el rendimiento de get_coefficients() y añade los resultados al fichero
     println("\nInicio del benchmark:")
     bench = @benchmark get_coefficients() samples = 50 evals = 1
     t_min = minimum(bench).time / 1e6   # ns → ms

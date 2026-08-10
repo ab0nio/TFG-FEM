@@ -1,3 +1,5 @@
+# Prueba GaussQuadrature.jl. MATLAB: +math/getGaussPoints.m,
+# getGaussPointsForSegment.m, getGaussPointsForQuadrilateral.m (sin test dedicado).
 @testset "GaussQuadrature.jl: Cuadratura de Gauss" begin
     # Reglas 1D subyacentes
     for order in (1, 3, 5)

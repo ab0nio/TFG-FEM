@@ -1,3 +1,5 @@
+# Prueba la permutación de nodos de Gmsh en Mesh.jl. MATLAB: sin equivalente
+# (MATLAB usa mallas almacenadas en meshesHalfFilledTAP2021.mat, no genera con Gmsh).
 @testset "Mesh.jl: Permutación de orden de nodos de Gmsh" begin
     # Mecanismo de la permutación, con un array de índices en vez de
     # coordenadas (más fácil de leer que test_jacobian.jl)

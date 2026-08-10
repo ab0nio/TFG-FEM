@@ -1,8 +1,11 @@
 module GaussQuadrature
+# Equivalente en MATLAB: +math/getGaussPoints.m,
+# +math/getGaussPointsForSegment.m, +math/getGaussPointsForQuadrilateral.m
 
 export gauss_segment, gauss_quadrilateral, gauss_hex
 #no usar valores tabulados
 # N puntos de Gauss integran polinomios de hasta grado 2N-1 exactamente.
+# MATLAB: +math/getGaussPointsForSegment.m:9-30
 function gauss_segment(order::Int)
     if order <= 1
         weights = [1.0]
@@ -19,6 +22,7 @@ function gauss_segment(order::Int)
     return weights, points
 end
 
+# MATLAB: +math/getGaussPointsForQuadrilateral.m:19-23
 function gauss_quadrilateral(order::Int)
     w1d, p1d = gauss_segment(order)
     n = length(w1d)
@@ -37,6 +41,7 @@ function gauss_quadrilateral(order::Int)
     return weights, points
 end
 
+# MATLAB: +math/getGaussPoints.m:20-24
 function gauss_hex(order::Int)
     w1d, p1d = gauss_segment(order)
     w2d, p2d = gauss_quadrilateral(order)

@@ -1,3 +1,5 @@
+# Prueba DOFs.jl. MATLAB: +bases/@SystematicBases/evaluateEdgeDOF.m,
+# evaluateFaceDOF.m, evaluateVolumeDOF.m (sin test dedicado).
 @testset "DOFs.jl: Integrales de DOF tipo arista" begin
     # Arista 1: de (0,0,0) a (1,0,0), tangente ξ̂, parámetro t = ξ.
     # Sobre la arista η=ζ=0, así que u·τ̂ = u_ξ = ξ² = t².
@@ -10,9 +12,9 @@
     # Las aristas 1 y 3 son tangentes a ξ̂: un campo sin componente ξ̂ da DOF
     # nulo por ortogonalidad. La arista 9 (ξ=η=0) anula un campo con
     # componente ζ̂ que se anula geométricamente sobre ella (u_ζ = ξ).
-    explica("COmprueba Dos formas de obtener un DOF nulo: por ortogonalidad ,en las aristas 1 y 3 ,
+    explica("Comprueba dos formas de obtener un DOF nulo: por ortogonalidad ,en las aristas 1 y 3 ,
     por ejemplo (dirección ξ̂) un campo sin componente ξ̂ se proyecta a cero
-    ó por anulación geométrica, por ejemplo ,la arista 9 tiene ξ=η=0, y ahí el campo u_ζ=ξ,
+    o por anulación geométrica, por ejemplo ,la arista 9 tiene ξ=η=0, y ahí el campo u_ζ=ξ,
     que no es nulo en el cubo en general, vale cero justo sobre esa arista.
     Un test comprueba que integra bien y el otro que estamos integrando en la arista correcta")
     probe_perp = p -> [0.0, p[1] + p[2]^2, p[3]^2]

@@ -1,12 +1,27 @@
+# Equivalente en MATLAB: no hay suite de tests; los drivers son
+# mainGenerateCoefficients.m, mainEvaluateCoefficients.m y mainHalfFilled.m.
 using NedelecHex
 using Test
 using LinearAlgebra, SparseArrays, Printf
 # Para ejecutar:  julia --project=. test/runtests.jl
 # Modo verboso:   NEDELEC_TEST_VERBOSE=1 julia --project=. test/runtests.jl
+# Omitir tests:   NEDELEC_TEST_SKIP="06,09" julia --project=. test/runtests.jl
 # Cada bloque imprime QUÉ comprueba, POR QUÉ el valor esperado
 # es el correcto y las magnitudes medidas, además del pasa/falla.
 const TEST_VERBOSE = lowercase(get(ENV, "NEDELEC_TEST_VERBOSE", "")) in ("1", "true", "yes")
 explica(args...) = (TEST_VERBOSE && println("  ▸ ", args..., "\n"); nothing)
+
+# Lista de tests a omitir vía NEDELEC_TEST_SKIP. Acepta números (6, 06) o
+# nombres (test_06), separados por comas o espacios; vacío = se ejecutan todos.
+const TEST_SKIP = split(get(ENV, "NEDELEC_TEST_SKIP", ""), r"[,\s]+"; keepempty=false)
+function skip_test(f)
+    for s in TEST_SKIP
+        n = tryparse(Int, s)
+        pat = n === nothing ? s : "test_" * lpad(n, 2, '0') * "_"
+        occursin(pat, f) && return true
+    end
+    return false
+end
 
 # Fixtures compartidas por toda la suite
 # W/G y los monomios son inmutables y G son 54×54 integrales relativamente
@@ -35,8 +50,11 @@ end
 # 05     elemento de referencia (Jacobiano, base dual, Kᵉ/Mᵉ)
 # 06     malla (permutación de nodos de Gmsh)
 # 07     bases evaluadas vs MATLAB (equivalente a mainEvaluateCoefficients.m)
-# 08     ensamblaje global en progresión 1 → 2 → 8 elementos
+# 08     ensamblaje global (1 → 2 → 8 elem) + autovalores nulos (núcleo de K)
+#        + comparación de K/M globales MATLAB vs Julia (se salta si faltan CSV)
+# 09     etiquetas de la malla: contorno (PolyFace) y material (Solid)
 # 10     verificación física (cavidad semillena)
+# 11     método de las soluciones manufacturadas (sin contrapartida en MATLAB)
 
 for f in (
     "test_01_quadrature.jl",
@@ -47,8 +65,11 @@ for f in (
     "test_06_gmsh_node_order.jl",
     "test_07_bases_eval.jl",
     "test_08_assembly.jl",
+    "test_09_tags.jl",
     "test_10_half_filled_cavity.jl",
+    "test_11_mms.jl",
 )
+    skip_test(f) && continue
     TEST_VERBOSE && println("\n", "═"^70, "\n▶ Ejecutando ", f, "\n", "═"^70)
     include(f)
 end

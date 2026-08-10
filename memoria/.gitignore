@@ -1,0 +1,15 @@
+# Ficheros auxiliares de LaTeX (TeXstudio / pdflatex / bibtex)
+*.aux
+*.bbl
+*.blg
+*.lof
+*.log
+*.lot
+*.out
+*.toc
+*.synctex.gz
+*.synctex(busy)
+*.fdb_latexmk
+*.fls
+*.lol
+main.pdf
