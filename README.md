@@ -27,68 +27,9 @@ de funciones de base hexaédricas *curl-conforming* de Nédélec de segundo orde
   12. **`NedelecHex.jl`**: módulo que agrupa todos los `include`.
 
 
-- **`matlab/`** *(EL repo original del paper es: https://github.com/aamorm/SystematicBasesForHexahedron?tab=readme-ov-file)*
-Implementación de referencia del paper, usada para comparar resultados. Usa clases OOP (`@Clase`) y espacios de nombres (`+paquete`).:
-
-  **Construir los monomios**
-  1. **`+math/@RealCoordinates/RealCoordinates.m`**: Es una clase que guarda las variables simbólicas x, y, z (no valores concretos, sino literalmente los símbolos (x, y ,z) para crear funciones), y que se pasa por referencia porque hereda de handle.
-  2. **`+math/@Polynomial/Polynomial.m`**: Pasa de una funcón simbólica a un array de coeficientes para operar más rápido
-  3. **`+math/@Polynomial/evaluatePolynomial.m`**: evalúa un polinomio en un punto r.
-  4. **`+math/@Polynomial/getSymPolynomial.m`**: devuelve la forma simbólica del polinomio .
-  5. **`+math/getMixedPolySpace.m`**: para un array t de variables simbólicas y un determinado orden para cada variable construye el espacio polinómico `Q(o1,o2,o3)` haciendo el producto tensorial de las 3 1D.
-  6. **`+math/getFullPolySpace.m`**: devuelve el vector {1, t, t², …, tⁿ} con todas las potencias de una única variable hasta el grado n.
-  7. **`+bases/getPolynomials.m`**: genera los **54 monomios** como producto tensorial de los espacios mixtos (equivalente a `Monomials.jl`).
-
-  **Cuadratura de Gauss**
-  8. **`+math/getGaussPointsForSegment.m`**: pesos y puntos de Gauss 1D (para aristas).
-  9. **`+math/getGaussPointsForQuadrilateral.m`**: Gauss 2D en una cara (producto tensorial del 1D).
-  10. **`+math/getGaussPoints.m`**: Gauss 3D en el hexaedro (producto tensorial 2D*1D). 
-  Equivalen a `GaussQuadrature.jl`.
-  11. **`+math/transform2Dto3DInReferenceElement.m`**: pasa un punto 2D de una cara a su 3D en el elemento de referencia. Equivale a `CoordinateTransforms.jl`.
-
-  **Construcción de la geometría**
-  12. **`+geometry/@Node/Node.m`**: un nodo(vértice) almacena: coordenadas, identificador global y si tiene o no condición de contorno.
-  13. **`+geometry/@Edge/Edge.m`** : una arista son 2 nodos, sus DOFs y CC.
-  14. **`+geometry/@Face/Face.m`**: una cara sus aristas, sus DOFs y su orden 
-  15. **`+geometry/@Element/Element.m`** un elemento tiene nodos+aristas+caras+DOFs interiores de volumen,material ,id ,el orden yfabrica el elemento de referencia 
-  16. **`+geometry/@PolyFace/PolyFace.m`**: grupos de caras que definen las condiciones de contorno en este caso dirichlet.
-  17. **`+geometry/@Solid/Solid.m`**: grupos de elementos que comparten material.
-  18. **`+geometry/@Mesh/Mesh.m`**: Contiene referencias a todo lo anterior + settings del problema. No construye la malla ,pero si la carga de las del .mat(equivale al `struct HexMesh`, pero en OOP).
-
-  **Materiales**
-  19. **`+settings/@MaterialProperty/`** (`MaterialProperty.m`, `evaluateProperty.m`), **`@Material/Material.m`**, **`@SystemSettings/SystemSettings.m`**: ε_r, μ_r (posiblemente inhomogéneos/anisótropos) y la configuración del problema.
-
-  **Las funciones base (el corazón — Fig. 2 y 3 del paper)**
-  20. **`+bases/@SystematicBases/SystematicBases.m`**:construye los 54 monomios, sus rotacionales y los polinomios de test `q` de la Tabla I (o los carga si ya están calculados).
-  21. **`.../evaluateEdgeDOF.m`**: funcional de arista, ec. (6).
-  22. **`.../evaluateFaceDOF.m`**: funcional de cara, ec. (7).
-  23. **`.../evaluateVolumeDOF.m`**: funcional de volumen, ec. (8).
-  24. **`.../getCoefficients.m`**: construye la matriz **G** (DOF `i` aplicado a monomio `j`) y resuelve **W = G\I**  Equivalente a `CoefficientGenerator.jl`.
-  25. **`.../getBasesEvaluated.m`**: evalúa las 54 bases en el elemento de **referencia** en un punto (combinación de monomios con W). Equivale a `eval_bases_ref` de `BasisEval.jl`. El mapeo de Piola al elemento real se hace luego, en el ensamblaje.
-  26. **`.../getCurlBasesEvaluated.m`**: lo mismo pero para los **rotacionales** de las 54 bases.
-  27. **`.../saveCoefficients.m`**, **`.../showBases.m`**, **`+bases/showPolynomials.m`**: guardar los coeficientes para no recalcularlos y mostrar coeficientes/monomios de forma legible.
-
-  **Numeración global de DOFs**
-  28. **`@Edge/generateDOF.m`**, **`@Face/generateDOF.m`**, **`@Element/generateVolumeDOF.m`**: asignan 2 / 4 / 6 DOFs por arista / cara / elemento.
-  29. **`@Mesh/generateDOF.m`**: recorre todas las entidades y da un identificador único a cada DOF (equivale a `build_dof_map` de `GlobalDOFs.jl`).
-  30. **`@Element/getDOF.m`**: lista los DOFs de un elemento en orden; **`@Mesh/getNNZ.m`**: es una cota superior de no-ceros para preasignar las dispersas.
-
-  **Ensamblaje FEM**
-  31. **`+assembly/getMassMatrix.m`**: matriz de masa del elemento `∫ εᵣ N·N` (c₂, ec. 21).
-  32. **`+assembly/getStiffMatrix.m`**: matriz de rigidez del elemento `∫ (1/μᵣ) (∇×N)·(∇×N)` ( c₁, ec. 20).
-  33. **`+assembly/imposeLocalDirichletMatrix.m`**: impone PEC por elemento (anula filas/columnas, 1 en la diagonal).
-  34. **`+assembly/getGlobalMatrices.m`**: ensambla K y M globales recorriendo los elementos. Equivale a `assemble_global_matrices` de `Assembly.jl`.
-
-  **Benchmark de la cavidad semillena**
-  35. **`+math/getKcFromHalfFilledCavity.m`**: autovalor **analítico** usando la ecuación de resonancia trascendente. Equivale a `analytic_kc` de `HalfFilledCavity.jl`.
-  36. **`@Mesh/getLengthStatistics.m`**: tamaño medio/máx/mín de arista (eje x de la gráfica de convergencia).
-  37. **`+math/plotHalfFilledCavity.m`**: dibuja el error en log-log (Fig. 5).
-
-  **Drivers (los `main` — puntos de entrada)**
-  38. **`mainGenerateCoefficients.m`**: solo genera las bases (Fig. 2).
-  39. **`mainEvaluateCoefficients.m`**: evalúa las bases a partir de la Tabla II (Fig. 3).
-  40. **`mainHalfFilled.m`**: flujo completo (bases → mallas → ensamblaje → autovalores → error).
-  41. **`mainDemo.m`** y **`mainBenchmark.m`**: comparación cruzada MATLAB↔Julia (W, bases, matrices) y benchmark de `getCoefficients`. **`exportMesh.m`**: exporta las mallas a CSV para que Julia use la misma discretización.
+- **`matlab/`**: implementación de referencia del paper, usada para comparar
+  resultados (no se versiona en este repo; el original es
+  https://github.com/aamorm/SystematicBasesForHexahedron).
 
 - **[`visualization/manim/`](visualization/manim/)**: animaciones en
   Python/Manim aún en proceso.
