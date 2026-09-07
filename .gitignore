@@ -18,13 +18,8 @@ ENV/
 # Manim
 media/
 
-# Outputs generados (los CSV de MATLAB y los resultados sí se versionan)
-NedelecHex/output/*.txt
-NedelecHex/output/*.log
-NedelecHex/output/*.msh
-NedelecHex/output/*.vtk
-NedelecHex/output/*.pdf
-NedelecHex/output/*.png
+# Outputs generados (mallas, resultados y reportes de benchmark)
+NedelecHex/output/
 
 # Notas y material personal/con copyright (libros, papers, docs con datos personales)
 documentation/

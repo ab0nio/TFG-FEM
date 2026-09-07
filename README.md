@@ -59,7 +59,7 @@ Los tests (`test/runtests.jl`) van en orden construyendo uno encima del otro en 
 | `test_06_gmsh_node_order.jl` | Comprobar que una permutación que apliqué debido a un comportamiento inesperado de Gmsh es realmente necesaria|
 | `test_07_bases_eval.jl` | Las 54 bases evaluadas en el punto central, comparadas con la Tabla II del paper y con la salida de MATLAB (equivalente a `mainEvaluateCoefficients.m`) |
 | `test_08_assembly.jl` | Ensamblaje global en progresión 1 → 2 → 8 elementos: un elemento (núcleo espurio de dimensión 26), dos elementos adyacentes (DOFs compartidos y orientación de aristas) y malla 2×2×2 (conteo combinatorio y propiedades globales) |
-| `test_09_mms.jl` | Método de Soluciones Manufacturadas: en proceso |
+| `test_09_tags.jl` | Etiquetado de la malla: contorno (PolyFace) y material (Solid) |
 | `test_10_half_filled_cavity.jl` | Benchmark de la cavidad semillena: convergencia O(h⁴) en autovalores y equivalencia 1:1 con `mainHalfFilled.m` sobre las mallas exportadas de MATLAB |
 
 ## Verificación

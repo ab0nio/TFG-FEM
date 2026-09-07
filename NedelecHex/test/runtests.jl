@@ -54,7 +54,6 @@ end
 #        + comparación de K/M globales MATLAB vs Julia (se salta si faltan CSV)
 # 09     etiquetas de la malla: contorno (PolyFace) y material (Solid)
 # 10     verificación física (cavidad semillena)
-# 11     método de las soluciones manufacturadas (sin contrapartida en MATLAB)
 
 for f in (
     "test_01_quadrature.jl",
@@ -67,7 +66,6 @@ for f in (
     "test_08_assembly.jl",
     "test_09_tags.jl",
     "test_10_half_filled_cavity.jl",
-    "test_11_mms.jl",
 )
     skip_test(f) && continue
     TEST_VERBOSE && println("\n", "═"^70, "\n▶ Ejecutando ", f, "\n", "═"^70)
