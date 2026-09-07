@@ -9,7 +9,7 @@ using ..Mesh: HexMesh, edge_polyface_type, face_polyface_type, has_boundary_tags
 using ..ReferenceHex: EDGES, FACES
 
 export DOFMap, build_dof_map, n_edge_dofs, n_face_dofs, n_vol_dofs,
-    dirichlet_dofs
+    dirichlet_dofs, constrained_dofs, element_dirichlet_mask
 
 const N_EDGE_DOFS_PER_EDGE = 2
 const N_FACE_DOFS_PER_FACE = 4
@@ -99,56 +99,121 @@ function build_dof_map(mesh::HexMesh)
     return DOFMap(n_dofs, conn)
 end
 
-# Devuelve los índices globales de DOFs que deben anularse por condición PEC
-# (E_tan = 0 sobre las entidades etiquetadas con `type`).
+# ---------------------------------------------------------------------------
+# Condiciones de contorno esenciales (Dirichlet)
+# ---------------------------------------------------------------------------
+# Una condición esencial fija el valor de ciertos DOFs (los elimina del
+# sistema). El código NO está atado a un único tipo: recorre las entidades de
+# la malla, consulta el `type` de su PolyFace y despacha la acción según ese
+# tipo. Hoy el único tipo esencial es PEC ("PerfectE"), pero el mecanismo es
+# extensible: añadir otro tipo esencial (p. ej. un plano de simetría) es
+# añadirlo a _is_essential_type y a los helpers de despacho.
 #
-# No mira coordenadas: pregunta a la malla qué condición de contorno tiene cada
-# arista y cada cara, igual que MATLAB. Así el mismo código sirve para PEC
-# parcial, tabiques metálicos interiores, geometrías no alineadas con los ejes o
-# problemas con varios tipos de contorno: lo que cambia es el etiquetado, no
-# esta función. Las etiquetas las pone el mallador (box_mesh vía grupos físicos
-# de Gmsh, load_matlab_mesh vía exportTags.m) o tag_exterior_boundary!.
+# No se mira coordenadas: se pregunta a la malla qué condición de contorno
+# tiene cada arista y cada cara, igual que MATLAB. Así el mismo código sirve
+# para PEC parcial, tabiques metálicos interiores, geometrías no alineadas con
+# los ejes o problemas con varios tipos de contorno: lo que cambia es el
+# etiquetado, no esta función. Las etiquetas las pone el mallador (box_mesh
+# vía grupos físicos de Gmsh, load_matlab_mesh vía exportTags.m) o
+# tag_exterior_boundary!.
 #
 # MATLAB: +assembly/imposeLocalDirichletMatrix.m (allí se aplica por elemento
 # antes de ensamblar; aquí se listan los índices globales)
-function dirichlet_dofs(mesh::HexMesh, dof_map::DOFMap; type::String="PerfectE")
+
+# Tipos de condición de contorno que imponen una restricción esencial.
+# Extensible: añade aquí un tipo nuevo y define su acción en los helpers.
+_is_essential_type(type::String) = type == "PerfectE"
+
+# DOFs de arista (loc. 1-24) que fija una condición esencial de tipo `type`.
+# (PEC: los 2 DOFs de la arista; otro tipo esencial añadiría su propia rama.)
+function _essential_edge_dofs!(dir_set::Set{Int}, type::String, dofs, k::Int)
+    _is_essential_type(type) || return
+    base = 2 * (k - 1)
+    push!(dir_set, dofs[base+1])
+    push!(dir_set, dofs[base+2])
+end
+
+# DOFs de cara (loc. 25-48) que fija una condición esencial de tipo `type`.
+# (PEC: los 4 DOFs de la cara; otro tipo esencial añadiría su propia rama.)
+function _essential_face_dofs!(dir_set::Set{Int}, type::String, dofs, f::Int)
+    _is_essential_type(type) || return
+    base = 24 + 4 * (f - 1)
+    for i in 1:4
+        push!(dir_set, dofs[base+i])
+    end
+end
+
+# Índices LOCALES (1-54) de los DOFs esenciales del elemento `e`, consultando
+# el tipo de cada arista y cara de la malla (igual que MATLAB por elemento).
+# `honor` decide qué tipos de condición se tienen en cuenta. Devuelve un
+# Vector{Bool} de longitud 54 (true = ese DOF local es esencial).
+function _element_essential_mask(mesh::HexMesh, e::Int, honor::Function)
+    gn = mesh.elements[e, :]
+    mask = falses(54)
+
+    # - DOF de arista (loc. 1-24): los dos DOFs si la arista es esencial.
+    for (k, (ln1, ln2)) in enumerate(EDGES)
+        t = edge_polyface_type(mesh, gn[ln1], gn[ln2])
+        honor(t) || continue
+        base = 2 * (k - 1)
+        mask[base+1] = true
+        mask[base+2] = true
+    end
+
+    # - DOF de cara (loc. 25-48): los cuatro DOFs si la cara es esencial.
+    for (f, face_lnodes) in enumerate(FACES)
+        gfn = ntuple(i -> gn[face_lnodes[i]], 4)
+        t = face_polyface_type(mesh, gfn)
+        honor(t) || continue
+        base = 24 + 4 * (f - 1)
+        for i in 1:4
+            mask[base+i] = true
+        end
+    end
+    # - DOFs de volumen (49-54): nunca son esenciales.
+
+    return mask
+end
+
+# Núcleo común: recorre la malla y fija los DOFs de las entidades cuyo tipo
+# cumple `honor`. `honor` decide qué tipos de condición se tienen en cuenta.
+function _collect_essential_dofs(mesh::HexMesh, dof_map::DOFMap, honor::Function)
     has_boundary_tags(mesh) ||
         error("La malla no tiene etiquetas de contorno: no hay forma de saber " *
               "qué DOFs son Dirichlet. Etiquétala (tag_exterior_boundary!, " *
-              "load_matlab_mesh o box_mesh) antes de llamar a dirichlet_dofs.")
+              "load_matlab_mesh o box_mesh) antes de llamar a esta función.")
 
     dir_set = Set{Int}()
     n_elem = size(mesh.elements, 1)
 
     for e in 1:n_elem
-        gn = mesh.elements[e, :]
         dofs = dof_map.connectivity[e, :]
-
-        # - DOF de arista (loc. 1-24): los dos DOFs se imponen si la arista
-        # pertenece a una polyface del tipo pedido.
-        for (k, (ln1, ln2)) in enumerate(EDGES)
-            if edge_polyface_type(mesh, gn[ln1], gn[ln2]) == type
-                base = 2 * (k - 1)
-                push!(dir_set, dofs[base+1])
-                push!(dir_set, dofs[base+2])
-            end
+        mask = _element_essential_mask(mesh, e, honor)
+        for i in 1:54
+            mask[i] && push!(dir_set, dofs[i])
         end
-
-        # - DOF de cara (loc. 25-48): los cuatro DOFs se imponen si la cara
-        # pertenece a una polyface del tipo pedido.
-        for (f, face_lnodes) in enumerate(FACES)
-            gfn = ntuple(i -> gn[face_lnodes[i]], 4)
-            if face_polyface_type(mesh, gfn) == type
-                base = 24 + 4 * (f - 1)
-                for i in 1:4
-                    push!(dir_set, dofs[base+i])
-                end
-            end
-        end
-        # - DOFs de volumen (49-54): nunca son Dirichlet.
     end
 
     return sort!(collect(dir_set))
+end
+
+# Máscara (54 Bool) de los DOFs LOCALES esenciales del elemento `e`, con el
+# predicado por defecto (PEC). La usa el ensamblaje para imponer Dirichlet por
+# elemento antes de ensamblar, igual que MATLAB (imposeLocalDirichletMatrix.m).
+function element_dirichlet_mask(mesh::HexMesh, e::Int)
+    return _element_essential_mask(mesh, e, _is_essential_type)
+end
+
+# Unificado: DOFs fijados por TODAS las condiciones esenciales de la malla.
+# Es el punto de entrada general: recorre las PolyFace y despacha por tipo.
+function constrained_dofs(mesh::HexMesh, dof_map::DOFMap)
+    return _collect_essential_dofs(mesh, dof_map, _is_essential_type)
+end
+
+# Compatibilidad: DOFs fijados por las condiciones esenciales de UN tipo
+# concreto (por defecto PEC). Equivale a constrained_dofs cuando solo hay PEC.
+function dirichlet_dofs(mesh::HexMesh, dof_map::DOFMap; type::String="PerfectE")
+    return _collect_essential_dofs(mesh, dof_map, t -> t == type)
 end
 
 end # module GlobalDOFs

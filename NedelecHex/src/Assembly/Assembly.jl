@@ -8,10 +8,10 @@ using ..GaussQuadrature: gauss_hex
 using ..BasisEval: eval_bases_ref, eval_curl_bases_ref,
     compute_jacobian, piola_transform, curl_piola_transform
 using ..Mesh: HexMesh, element_nodes, element_epsilon, element_inv_mu
-using ..GlobalDOFs: DOFMap
+using ..GlobalDOFs: DOFMap, element_dirichlet_mask, dirichlet_dofs
 
 export mass_matrix_element, stiff_matrix_element,
-    assemble_global_matrices, apply_dirichlet!, free_dofs,
+    assemble_global_matrices, free_dofs,
     load_vector_element, assemble_load_vector
 
 # 2p = 4 → 3 puntos/dirección → 27 puntos de Gauss.
@@ -89,11 +89,21 @@ end
 # mesh.element_solid), como en MATLAB: getGlobalMatrices.m lee
 # solids(elements(e).solidId).materialObj. epsilon_r/inv_mu_r se pueden pasar a
 # mano (escalar homogéneo o vector de longitud n_elem) para sobreescribirlas.
+#
+# `dirichlet=true` impone las condiciones esenciales (PEC) POR ELEMENTO antes
+# de ensamblar, igual que MATLAB (+assembly/imposeLocalDirichletMatrix.m):
+# dentro del bucle se anulan las filas/columnas de los DOFs Dirichlet de cada
+# Kᵉ/Mᵉ elemental y, al final, se fija la diagonal de esos DOFs a 1. La
+# identificación de DOFs se hace consultando las aristas/caras de cada elemento
+# (element_dirichlet_mask), no como un paso global separado. Por defecto false
+# para no alterar los flujos que necesitan las matrices sin imponer
+# (comparación con MATLAB, MMS con traza no homogénea).
 # MATLAB: +assembly/getGlobalMatrices.m:20-58
 function assemble_global_matrices(
     mesh::HexMesh, dof_map::DOFMap, W, mono, curl_mono;
     epsilon_r::Union{Nothing,Float64,AbstractVector{Float64}}=nothing,
-    inv_mu_r::Union{Nothing,Float64,AbstractVector{Float64}}=nothing)
+    inv_mu_r::Union{Nothing,Float64,AbstractVector{Float64}}=nothing,
+    dirichlet::Bool=false)
 
     n_dofs = dof_map.n_dofs
     n_elem = size(mesh.elements, 1)
@@ -118,6 +128,20 @@ function assemble_global_matrices(
         Me = mass_matrix_element(W, mono, nodes; epsilon_r=eps_vec[e])
         Ke = stiff_matrix_element(W, curl_mono, nodes; inv_mu_r=mu_vec[e])
 
+        # Imposición de Dirichlet POR ELEMENTO (como MATLAB): se anulan las
+        # filas/columnas de los DOFs esenciales de esta matriz elemental antes
+        # de volcarla al COO. La diagonal unitaria se fija al final (global),
+        # porque un DOF Dirichlet compartido por varios elementos sumaría 1s.
+        if dirichlet
+            mask = element_dirichlet_mask(mesh, e)
+            for j in 1:54, i in 1:54
+                if mask[i] || mask[j]
+                    Me[i, j] = 0.0
+                    Ke[i, j] = 0.0
+                end
+            end
+        end
+
         base = (e - 1) * nnz_e #offset donde empieza el bloque de este elemento (elemento 1(1-2916) elemento 2(2917-5832) ...)
         for j in 1:54, i in 1:54#recorre las filas i y luego las columnas j del bloque de 54x54 de este elemento
             p = base + (j - 1) * 54 + i
@@ -139,31 +163,21 @@ function assemble_global_matrices(
     # ya reservada, así que la memoria seguiría ocupada. Reconstruir sí la libera:
     M = sparse(findnz(M)..., n_dofs, n_dofs)
     K = sparse(findnz(K)..., n_dofs, n_dofs)
+
+    # Fija la diagonal de los DOFs Dirichlet a 1 (una sola vez, globalmente).
+    # Equivale a la diagonal unitaria que MATLAB impone por elemento; aquí se
+    # hace al final para que los 1s de elementos adyacentes no se sumen.
+    if dirichlet
+        for d in dirichlet_dofs(mesh, dof_map)
+            K[d, d] = 1.0
+            M[d, d] = 1.0
+        end
+    end
+
     return K, M
 end
 
 # Devuelve los índices de DOFs libres (complemento de dir_dofs).
 free_dofs(n_dofs::Int, dir_dofs::AbstractVector{Int}) = setdiff(1:n_dofs, dir_dofs)
-
-# Impone condiciones Dirichlet: anula filas/columnas y pone 1 en diagonal.
-# MATLAB: +assembly/imposeLocalDirichletMatrix.m:46-52 (MATLAB lo hace por
-# elemento antes de ensamblar; aquí se hace globalmente después)
-function apply_dirichlet!(K::SparseMatrixCSC, M::SparseMatrixCSC,
-    dir_dofs::AbstractVector{Int})
-    dir_set = Set(dir_dofs) # Set hace que busque en un hash en vez de un vector
-    n = size(K, 1)
-
-    for mat in (K, M) #por cada matriz
-        for j in 1:n #recorre cada columna
-            for p in nzrange(mat, j) # por cada rango de indices no nulos de la columna j
-                i = mat.rowval[p] #Busca en memoria la fila i que pertenece a ese elemento en la posición p
-                if i in dir_set || j in dir_set #si la fila o columna pertenece a un dof de dirichlet
-                    mat.nzval[p] = (i == j && i in dir_set) ? 1.0 : 0.0
-                end
-            end
-        end
-        dropzeros!(mat)#elimina los ceros y recomprime a CSC
-    end
-end
 
 end # module Assembly

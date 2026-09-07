@@ -1,9 +1,0 @@
-% Metadatos que se incorporan al PDF/A al compilar (paquete pdfx).
-% Este archivo DEBE llamarse igual que el .tex principal.
-% Rellena los campos con el título, autor, palabras clave y materia del TFG.
-\Title{Título del trabajo}
-\Author{Nombre Apellido1 Apellido2}
-\Copyright{\copyright The author. Some rights reserved. This document is under terms of Creative Commons license Attribution - Non Commercial - Non Derivatives.}
-\CopyrightURL{http://creativecommons.org/licenses/by-nc-nd/3.0/es/}
-\Keywords{palabra1\sep palabra2\sep palabra3\sep palabra4\sep palabra5}
-\Subject{Trabajo Fin de Grado. Universidad Carlos III de Madrid}

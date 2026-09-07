@@ -137,6 +137,24 @@ end
     @test minimum(λK) > -1e-8
 end
 
+@testset "Assembly: dimensión del núcleo de K en mallas adicionales" begin
+    # Verifica la fórmula cerrada del núcleo de K (modos gradiente espurios):
+    # nodos Q2 = (2·nx+1)(2·ny+1)(2·nz+1), menos la función constante → nodos − 1.
+    # Mallas nuevas añadidas a la tabla de la memoria (tab:nucleo).
+    casos = [
+        (2, 2, 1, 74),   # (2·2+1)(2·2+1)(2·1+1) = 5·5·3 = 75 → 74
+        (3, 3, 3, 342),  # 7³ = 343 → 342
+        (4, 4, 4, 728),  # 9³ = 729 → 728
+    ]
+    for (nx, ny, nz, n_null_expected) in casos
+        mesh, dof_map, K, _ = assemble_box(nx, ny, nz)
+        λK = eigvals(Symmetric(Matrix(K)))
+        n_null = count(x -> abs(x) < 1e-6, λK)
+        explica("Dimensión del núcleo de K (malla $(nx)×$(ny)×$(nz)): $(n_null) autovalores ≈ 0; esperado $(n_null_expected).")
+        @test n_null == n_null_expected
+    end
+end
+
 # Comparación de las matrices globales K y M ensambladas: MATLAB vs Julia.
 # Requiere los CSV que produce matlab/exportGlobalMatrices.m (matlab_K_N.csv,
 # matlab_M_N.csv, matlab_free_N.csv).

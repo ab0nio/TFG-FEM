@@ -3,7 +3,9 @@
 # Benchmark de rendimiento ensamblaje y solver en Julia
 # ===========================================================================
 #
-# Etapas medidas : (coefficients, dof_numbering, assembly, dirichlet, solver)
+# Etapas medidas : (coefficients, dof_numbering, assembly, solver)
+# El assembly incluye la imposición de Dirichlet (dirichlet=true), igual que el
+# assembly de MATLAB (getGlobalMatrices llama a imposeLocalDirichletMatrix).
 # Metodología:
 #   - BLAS (Basic Linear Algebra Subprograms) a 1 hilo.
 #   - Se reportan por separado:
@@ -78,7 +80,7 @@ function run_stages(io)
     k2_analytic = analytic_eigenvalues() .^ 2
 
     # -------------------------------------------------------------------
-    # Etapas 2–5 por malla: dof_numbering, assembly, dirichlet, solver
+    # Etapas 2–4 por malla: dof_numbering, assembly (con Dirichlet), solver
     # -------------------------------------------------------------------
     for i in 1:N_MESHES
         # mallas de matlab, con sus etiquetas de material y de contorno
@@ -94,10 +96,15 @@ function run_stages(io)
         emit(io, i, n_elem, n_dof, "dof_numbering",
             t_ttfx * 1e3, median(b).time / 1e6, median(b).memory, nothing, nothing)
 
-        # --- assembly ------------------------------------------------------
-        t_ttfx = @elapsed assemble_global_matrices(mesh, dof_map, W, mono, curl_mono)
-        b = @benchmark assemble_global_matrices($mesh, $dof_map, $W, $mono, $curl_mono) samples=50
-        K, M = assemble_global_matrices(mesh, dof_map, W, mono, curl_mono)
+        # --- assembly (incluye Dirichlet, como MATLAB) ---------------------
+        # `dirichlet=true` impone las condiciones esenciales (PEC) POR ELEMENTO
+        # dentro del ensamblaje, igual que MATLAB (+assembly/getGlobalMatrices.m
+        # llama a imposeLocalDirichletMatrix). Así el assembly de Julia es
+        # comparable 1:1 con el de MATLAB y la matriz "completa" devuelta ya
+        # llega con los acoplamientos de contorno a cero.
+        t_ttfx = @elapsed assemble_global_matrices(mesh, dof_map, W, mono, curl_mono; dirichlet=true)
+        b = @benchmark assemble_global_matrices($mesh, $dof_map, $W, $mono, $curl_mono; dirichlet=true) samples=50
+        K, M = assemble_global_matrices(mesh, dof_map, W, mono, curl_mono; dirichlet=true)
         mem_occ = Base.summarysize(K) + Base.summarysize(M)
 
         # Kfree y Mfree para comparar con MATLAB
@@ -108,18 +115,9 @@ function run_stages(io)
             t_ttfx * 1e3, median(b).time / 1e6, median(b).memory, mem_occ, nnz(K),
             nnz(Kf_stats), mem_free)
 
-        # --- dirichlet (solo-Julia; en MATLAB va dentro de assembly) -------
-        t_ttfx = @elapsed begin
-            dir = dirichlet_dofs(mesh, dof_map)
-            free_dofs(dof_map.n_dofs, dir)
-        end
-        b = @benchmark (free_dofs($dof_map.n_dofs, dirichlet_dofs($mesh, $dof_map))) samples=100
-        emit(io, i, n_elem, n_dof, "dirichlet",
-            t_ttfx * 1e3, median(b).time / 1e6, median(b).memory, nothing, nothing)
-
         # --- solver (autovalores) ------------------------------------------
         # εᵣ de las etiquetas de la malla de MATLAB, para que sea el mismo problema
-        Ks, Ms = assemble_global_matrices(mesh, dof_map, W, mono, curl_mono)
+        Ks, Ms = assemble_global_matrices(mesh, dof_map, W, mono, curl_mono; dirichlet=true)
         free = free_dofs(dof_map.n_dofs, dirichlet_dofs(mesh, dof_map))
         Kf, Mf = Ks[free, free], Ms[free, free]
         # Dos muestras con @elapsed porque con benchmark me tardaba mucho

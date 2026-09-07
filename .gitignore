@@ -18,8 +18,13 @@ ENV/
 # Manim
 media/
 
-# Outputs generados (los CSV de MATLAB sí se versionan)
+# Outputs generados (los CSV de MATLAB y los resultados sí se versionan)
 NedelecHex/output/*.txt
+NedelecHex/output/*.log
+NedelecHex/output/*.msh
+NedelecHex/output/*.vtk
+NedelecHex/output/*.pdf
+NedelecHex/output/*.png
 
 # Notas y material personal/con copyright (libros, papers, docs con datos personales)
 documentation/
@@ -27,6 +32,9 @@ documentation/
 # Clon local del repo de referencia de aamorm (SystematicBasesForHexahedron),
 # no se versiona en TFG-FEM
 matlab/
+
+# Memoria del TFG (documento LaTeX final): no se versiona en este repo
+memoria/
 
 # Configuración local del editor (rutas absolutas de esta máquina)
 .vscode/

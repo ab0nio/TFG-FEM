@@ -1,48 +1,41 @@
 # Benchmark de rendimiento (ensamblaje + solver): Julia vs MATLAB
 
+- Fecha: 2026-09-06 21:35:44
+- Máquina: `Linux 7.1.8-arch1-3 x86_64`
+- Hilos (BLAS/cómputo): 1 en ambos lados (comparación de algoritmo serial).
+- Solver de autovalores: **incluido** como etapa `solver`, para poder
+  contrastar su coste con el de construir las matrices.
+- Tiempos: **mediana en caliente** (BenchmarkTools / timeit). Ver TTFX aparte.
+
 ## Tiempo en caliente por etapa
 
 | Etapa | Malla | n_dof | Julia (ms) | MATLAB (ms) | MATLAB/Julia |
 |---|---:|---:|---:|---:|---:|
-| coefficients | — | 0 | 5.2617 | 251.0346 | 47.71× |
+| coefficients | — | 0 | 4.7732 | 251.0346 | 52.59× |
 |  |  |  |  |  |  |
-| dof_numbering | 1 | 318 | 0.0097 | 0.4276 | 44.10× |
-| assembly | 1 | 318 | 8.0376 | 201.9896 † | — |
-| dirichlet | 1 | 318 | 0.0363 | — | — |
-| **assembly+dirichlet** | 1 | 318 | **8.0739** | **201.9896** | **25.02×** |
-| solver | 1 | 318 | 0.3783 | 1.5476 | 4.09× |
+| dof_numbering | 1 | 318 | 0.0086 | 0.4276 | 49.75× |
+| assembly | 1 | 318 | 6.7801 | 201.9896 | 29.79× |
+| solver | 1 | 318 | 0.3845 | 1.5476 | 4.02× |
 |  |  |  |  |  |  |
-| dof_numbering | 2 | 1678 | 0.0560 | 2.1716 | 38.79× |
-| assembly | 2 | 1678 | 63.9433 | 1093.0986 † | — |
-| dirichlet | 2 | 1678 | 0.1965 | — | — |
-| **assembly+dirichlet** | 2 | 1678 | **64.1398** | **1093.0986** | **17.04×** |
-| solver | 2 | 1678 | 50.9357 | 7.8646 | 0.15× |
+| dof_numbering | 2 | 1678 | 0.0517 | 2.1716 | 41.97× |
+| assembly | 2 | 1678 | 54.8406 | 1093.0986 | 19.93× |
+| solver | 2 | 1678 | 45.6151 | 7.8646 | 0.17× |
 |  |  |  |  |  |  |
-| dof_numbering | 3 | 4062 | 0.1253 | 6.2516 | 49.88× |
-| assembly | 3 | 4062 | 161.6445 | 2634.1486 † | — |
-| dirichlet | 3 | 4062 | 0.5811 | — | — |
-| **assembly+dirichlet** | 3 | 4062 | **162.2256** | **2634.1486** | **16.24×** |
-| solver | 3 | 4062 | 1216.0006 | 19.0496 | 0.02× |
+| dof_numbering | 3 | 4062 | 0.1269 | 6.2516 | 49.28× |
+| assembly | 3 | 4062 | 144.6518 | 2634.1486 | 18.21× |
+| solver | 3 | 4062 | 983.1298 | 19.0496 | 0.02× |
 |  |  |  |  |  |  |
-| dof_numbering | 4 | 14916 | 0.6391 | 18.1826 | 28.45× |
-| assembly | 4 | 14916 | 927.6766 | 11361.4036 † | — |
-| dirichlet | 4 | 14916 | 2.4535 | — | — |
-| **assembly+dirichlet** | 4 | 14916 | **930.1301** | **11361.4036** | **12.21×** |
-| solver | 4 | 14916 | 250.7212 | 260.1546 | 1.04× |
+| dof_numbering | 4 | 14916 | 0.5328 | 18.1826 | 34.13× |
+| assembly | 4 | 14916 | 1150.0440 | 11361.4036 | 9.88× |
+| solver | 4 | 14916 | 474.8820 | 260.1546 | 0.55× |
 |  |  |  |  |  |  |
-| dof_numbering | 5 | 23124 | 1.2037 | 28.2926 | 23.50× |
-| assembly | 5 | 23124 | 1313.1491 | 17136.7146 † | — |
-| dirichlet | 5 | 23124 | 4.1139 | — | — |
-| **assembly+dirichlet** | 5 | 23124 | **1317.2629** | **17136.7146** | **13.01×** |
-| solver | 5 | 23124 | 532.0363 | 424.2356 | 0.80× |
+| dof_numbering | 5 | 23124 | 0.9610 | 28.2926 | 29.44× |
+| assembly | 5 | 23124 | 2563.8155 | 17136.7146 | 6.68× |
+| solver | 5 | 23124 | 430.9752 | 424.2356 | 0.98× |
 
 > Ratio > 1 → Julia más rápido; < 1 → MATLAB más rápido.
-> † `assembly` **no es comparable etapa a etapa**: MATLAB impone las
-> condiciones Dirichlet dentro de `getGlobalMatrices`, mientras que en
-> Julia son una etapa aparte (`dirichlet`). La comparación de igual a
-> igual es la fila **assembly+dirichlet** = (assembly + dirichlet) de
-> Julia frente a `assembly` de MATLAB; por eso el ratio se da ahí y no
-> en la fila `assembly`.
+> `assembly` es comparable 1:1: en ambos lenguajes la etapa incluye la
+> imposición de las condiciones Dirichlet (PEC) dentro del ensamblaje.
 
 ## Memoria de K + M — bloque libre-libre (comparable)
 
@@ -64,62 +57,50 @@
 > igualdad numérica de fondo la certifica `test_08_assembly.jl` (‖K‖_F y
 > traza coinciden a ~1e-15).
 
-## Memoria de K + M — matriz completa (contexto, no comparable)
+## Memoria de K + M — matriz completa (contexto)
 
 | Malla | n_dof | nnz(K) Julia | nnz(K) MATLAB | Mem Julia | Mem MATLAB |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 318 | 21900 | 2780 | 514.8 KB | 70.4 KB |
-| 2 | 1678 | 128300 | 28860 | 3.1 MB | 708.9 KB |
-| 3 | 4062 | 318888 | 80284 | 7.6 MB | 1.9 MB |
-| 4 | 14916 | 1321528 | 693864 | 31.3 MB | 28.2 MB |
-| 5 | 23124 | 2061344 | 1108104 | 48.9 MB | 44.3 MB |
+| 1 | 318 | 2780 | 2780 | 144.4 KB | 70.4 KB |
+| 2 | 1678 | 28860 | 28860 | 1.3 MB | 708.9 KB |
+| 3 | 4062 | 80284 | 80284 | 3.6 MB | 1.9 MB |
+| 4 | 14916 | 693796 | 693864 | 26.8 MB | 28.2 MB |
+| 5 | 23124 | 1107824 | 1108104 | 46.5 MB | 44.3 MB |
 
-> **Estas columnas NO son comparables entre sí.** MATLAB impone Dirichlet
-> DENTRO de `getGlobalMatrices` (`imposeLocalDirichletMatrix` anula fila y
-> columna y pone un 1 en la diagonal), así que su matriz "completa" ya
-> llega con los acoplamientos de contorno a cero — `sparse` los descarta —
-> y su nnz es prácticamente el del bloque libre. La K de Julia es la matriz
-> íntegra n_dof x n_dof y el filtrado es posterior. MATLAB parece gastar
-> menos memoria porque guarda menos matriz, no porque la guarde mejor.
-> La comparación buena es la tabla anterior.
+> Ambas implementaciones imponen Dirichlet DENTRO del ensamblaje (`dirichlet=true`
+> en Julia; `imposeLocalDirichletMatrix` en MATLAB), así que la matriz "completa"
+> ya llega con los acoplamientos de contorno a cero y su nnz es prácticamente el
+> del bloque libre. La memoria es algo mayor que la de la tabla anterior porque la
+> matriz es n_dof x n_dof (no n_free x n_free), pero la comparación entre lenguajes
+> es directa. La tabla anterior (bloque libre-libre) sigue siendo la referencia.
 
 ## TTFX — primera ejecución (incluye compilación)
 
 | Etapa | Malla | Julia TTFX (ms) | MATLAB TTFX (ms) |
 |---|---:|---:|---:|
-| coefficients | — | 2955.3417 | 486.0640 |
+| coefficients | — | 2536.0688 | 486.0640 |
 |  |  |  |  |
-| dof_numbering | 1 | 0.0233 | 12.4480 |
-| assembly | 1 | 318.4896 | 294.0400 |
-| dirichlet | 1 | 0.0853 | — |
-| **assembly+dirichlet** | 1 | **318.5749** | **294.0400** |
-| solver | 1 | 0.5148 | 145.9280 |
+| dof_numbering | 1 | 0.0264 | 12.4480 |
+| assembly | 1 | 410.2340 | 294.0400 |
+| solver | 1 | 0.5246 | 145.9280 |
 |  |  |  |  |
-| dof_numbering | 2 | 0.0696 | 3.5420 |
-| assembly | 2 | 60.8644 | 1096.1230 |
-| dirichlet | 2 | 0.2355 | — |
-| **assembly+dirichlet** | 2 | **61.0998** | **1096.1230** |
-| solver | 2 | 61.5199 | 9.1920 |
+| dof_numbering | 2 | 0.0700 | 3.5420 |
+| assembly | 2 | 52.9709 | 1096.1230 |
+| solver | 2 | 46.2147 | 9.1920 |
 |  |  |  |  |
-| dof_numbering | 3 | 0.1510 | 6.5230 |
-| assembly | 3 | 159.9911 | 2979.8210 |
-| dirichlet | 3 | 0.5718 | — |
-| **assembly+dirichlet** | 3 | **160.5630** | **2979.8210** |
-| solver | 3 | 1148.9181 | 19.2340 |
+| dof_numbering | 3 | 0.1349 | 6.5230 |
+| assembly | 3 | 143.7643 | 2979.8210 |
+| solver | 3 | 1004.2435 | 19.2340 |
 |  |  |  |  |
-| dof_numbering | 4 | 0.5727 | 19.0750 |
-| assembly | 4 | 965.9595 | 11238.5500 |
-| dirichlet | 4 | 2.7159 | — |
-| **assembly+dirichlet** | 4 | **968.6754** | **11238.5500** |
-| solver | 4 | 1610.2406 | 272.6770 |
+| dof_numbering | 4 | 0.7046 | 19.0750 |
+| assembly | 4 | 926.3353 | 11238.5500 |
+| solver | 4 | 1473.5822 | 272.6770 |
 |  |  |  |  |
-| dof_numbering | 5 | 1.0499 | 29.6810 |
-| assembly | 5 | 1419.5994 | 17331.3430 |
-| dirichlet | 5 | 3.9109 | — |
-| **assembly+dirichlet** | 5 | **1423.5103** | **17331.3430** |
-| solver | 5 | 465.7025 | 441.6270 |
+| dof_numbering | 5 | 1.0774 | 29.6810 |
+| assembly | 5 | 2937.2297 | 17331.3430 |
+| solver | 5 | 679.6993 | 441.6270 |
 
 > En Julia el TTFX de la primera malla incluye la compilación JIT; en
 > las mallas siguientes la función ya está compilada, de ahí la caída.
-> Misma salvedad que arriba: la fila comparable con el `assembly` de
-> MATLAB es **assembly+dirichlet**.
+> El `assembly` es comparable 1:1: en ambos lenguajes la etapa incluye la
+> imposición de las condiciones Dirichlet (PEC) dentro del ensamblaje.

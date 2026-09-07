@@ -6,7 +6,7 @@ using LinearAlgebra, SparseArrays, Printf, DelimitedFiles
 using Arpack: eigs
 
 using ..Mesh: HexMesh, load_matlab_mesh
-using ..GlobalDOFs: DOFMap, build_dof_map, dirichlet_dofs
+using ..GlobalDOFs: DOFMap, build_dof_map, constrained_dofs
 using ..Assembly: assemble_global_matrices, free_dofs
 using ..CoefficientGenerator: get_coefficients
 using ..Monomials: build_h2_monomials, build_h2_curl_monomials
@@ -152,8 +152,12 @@ function convergence_study_matlab(kc_analytic::Vector{Float64};
         dof_map = build_dof_map(mesh_i)
 
         t0 = time()
-        K, M = assemble_global_matrices(mesh_i, dof_map, W, mono, curl_mono)
-        dir = dirichlet_dofs(mesh_i, dof_map)
+        # dirichlet=true: impone el PEC por elemento antes de ensamblar, como
+        # MATLAB (imposeLocalDirichletMatrix.m). El [free,free] de abajo sigue
+        # excluyendo esos DOFs, así que el resultado es idéntico.
+        K, M = assemble_global_matrices(mesh_i, dof_map, W, mono, curl_mono;
+            dirichlet=true)
+        dir = constrained_dofs(mesh_i, dof_map)
         free = free_dofs(dof_map.n_dofs, dir)
         λ_fem = _lowest_physical_eigenvalues(K[free, free], M[free, free],
             n_modes, k2_analytic)

@@ -9,9 +9,8 @@
 #   results_combined.csv                    
 #   benchmark_report.md                    
 #
-# Uso:   bash test/benchmark.sh                  
-#        bash test/benchmark.sh --solo-reporte   
-IN.
+# Uso:   bash test/benchmark.sh
+#        bash test/benchmark.sh --solo-reporte
 # ===========================================================================
 set -euo pipefail
 
@@ -167,35 +166,16 @@ END {
         prev = malla;
         mlbl = (malla == 0) ? "—" : malla;
         wj = warmof[key,"julia"]; wm = warmof[key,"matlab"];
-        if (etapa == "assembly" && wm != "" && wm != "NA")
-            # El assembly de MATLAB NO es comparable con el de Julia: incluye las
-            # condiciones Dirichlet. El ratio se da abajo, sobre la suma.
-            printf("| %s | %s | %s | %s | %s † | — |\n",
-                   etapa, mlbl, ndofof[key], ms(wj), ms(wm));
-        else
-            printf("| %s | %s | %s | %s | %s | %s |\n",
-                   etapa, mlbl, ndofof[key], ms(wj), ms(wm), ratio(wj, wm));
-
-        # Tras `dirichlet` (última de las dos etapas que MATLAB hace juntas), la
-        # fila derivada que sí es una comparación de igual a igual.
-        if (etapa == "dirichlet") {
-            ak = "assembly|" malla;
-            aj = warmof[ak,"julia"]; am = warmof[ak,"matlab"];
-            if (aj != "" && wj != "") {
-                sj = aj + wj;
-                printf("| **assembly+dirichlet** | %s | %s | **%s** | **%s** | **%s** |\n",
-                       mlbl, ndofof[key], ms(sj), ms(am), ratio(sj, am));
-            }
-        }
+        # El `assembly` de Julia incluye Dirichlet (dirichlet=true), igual que el
+        # de MATLAB (getGlobalMatrices llama a imposeLocalDirichletMatrix), así
+        # que ambas etapas son comparables 1:1.
+        printf("| %s | %s | %s | %s | %s | %s |\n",
+               etapa, mlbl, ndofof[key], ms(wj), ms(wm), ratio(wj, wm));
     }
     print "";
     print "> Ratio > 1 → Julia más rápido; < 1 → MATLAB más rápido.";
-    print "> † `assembly` **no es comparable etapa a etapa**: MATLAB impone las";
-    print "> condiciones Dirichlet dentro de `getGlobalMatrices`, mientras que en";
-    print "> Julia son una etapa aparte (`dirichlet`). La comparación de igual a";
-    print "> igual es la fila **assembly+dirichlet** = (assembly + dirichlet) de";
-    print "> Julia frente a `assembly` de MATLAB; por eso el ratio se da ahí y no";
-    print "> en la fila `assembly`.";
+    print "> `assembly` es comparable 1:1: en ambos lenguajes la etapa incluye la";
+    print "> imposición de las condiciones Dirichlet (PEC) dentro del ensamblaje.";
     print "";
 
     # ---- Tabla 2a: bloque libre-libre, LA comparación válida de memoria ----
@@ -225,8 +205,8 @@ END {
     print "> traza coinciden a ~1e-15).";
     print "";
 
-    # ---- Tabla 2b: matrices completas (contexto; NO comparables) ----
-    print "## Memoria de K + M — matriz completa (contexto, no comparable)";
+    # ---- Tabla 2b: matrices completas (contexto) ----
+    print "## Memoria de K + M — matriz completa (contexto)";
     print "";
     print "| Malla | n_dof | nnz(K) Julia | nnz(K) MATLAB | Mem Julia | Mem MATLAB |";
     print "|---:|---:|---:|---:|---:|---:|";
@@ -241,14 +221,12 @@ END {
                human(memof[key,"julia"]), human(memof[key,"matlab"]));
     }
     print "";
-    print "> **Estas columnas NO son comparables entre sí.** MATLAB impone Dirichlet";
-    print "> DENTRO de `getGlobalMatrices` (`imposeLocalDirichletMatrix` anula fila y";
-    print "> columna y pone un 1 en la diagonal), así que su matriz \"completa\" ya";
-    print "> llega con los acoplamientos de contorno a cero — `sparse` los descarta —";
-    print "> y su nnz es prácticamente el del bloque libre. La K de Julia es la matriz";
-    print "> íntegra n_dof x n_dof y el filtrado es posterior. MATLAB parece gastar";
-    print "> menos memoria porque guarda menos matriz, no porque la guarde mejor.";
-    print "> La comparación buena es la tabla anterior.";
+    print "> Ambas implementaciones imponen Dirichlet DENTRO del ensamblaje (`dirichlet=true`";
+    print "> en Julia; `imposeLocalDirichletMatrix` en MATLAB), así que la matriz \"completa\"";
+    print "> ya llega con los acoplamientos de contorno a cero y su nnz es prácticamente el";
+    print "> del bloque libre. La memoria es algo mayor que la de la tabla anterior porque la";
+    print "> matriz es n_dof x n_dof (no n_free x n_free), pero la comparación entre lenguajes";
+    print "> es directa. La tabla anterior (bloque libre-libre) sigue siendo la referencia.";
     print "";
 
     # ---- Tabla 3: TTFX (primera llamada, incluye compilación JIT en Julia) ----
@@ -265,19 +243,12 @@ END {
         mlbl = (malla == 0) ? "—" : malla;
         tj = ttfxof[key,"julia"]; tm = ttfxof[key,"matlab"];
         printf("| %s | %s | %s | %s |\n", etapa, mlbl, ms(tj), ms(tm));
-        if (etapa == "dirichlet") {
-            ak = "assembly|" malla;
-            aj = ttfxof[ak,"julia"]; am = ttfxof[ak,"matlab"];
-            if (aj != "" && tj != "")
-                printf("| **assembly+dirichlet** | %s | **%s** | **%s** |\n",
-                       mlbl, ms(aj + tj), ms(am));
-        }
     }
     print "";
     print "> En Julia el TTFX de la primera malla incluye la compilación JIT; en";
     print "> las mallas siguientes la función ya está compilada, de ahí la caída.";
-    print "> Misma salvedad que arriba: la fila comparable con el `assembly` de";
-    print "> MATLAB es **assembly+dirichlet**.";
+    print "> El `assembly` es comparable 1:1: en ambos lenguajes la etapa incluye la";
+    print "> imposición de las condiciones Dirichlet (PEC) dentro del ensamblaje.";
 }
 ' "$COMBINED_CSV" > "$REPORT_MD"
 
