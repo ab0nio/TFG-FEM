@@ -160,7 +160,7 @@ end
 # matlab_M_N.csv, matlab_free_N.csv).
 @testset "Assembly: comparación K/M globales MATLAB vs Julia (" begin
     W, mono, curl_mono = W_REF, MONO, CURL_MONO
-    mesh_dir = joinpath(@__DIR__, "..", "output")
+    mesh_dir = joinpath(@__DIR__, "data", "meshes")
 
     #Función auxiliar para cargar una matriz dispersa en formato COO exportada por MATLAB
     load_coo(path) = (A=readdlm(path, ','); sparse(Int.(A[:, 1]), Int.(A[:, 2]), Float64.(A[:, 3])))

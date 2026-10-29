@@ -176,13 +176,13 @@ end
 end
 
 @testset "Etiquetas: las mallas de MATLAB traen su propio material" begin
-    mesh_dir = joinpath(@__DIR__, "..", "output")
+    mesh_dir = joinpath(@__DIR__, "data", "meshes")
     have(i) = isfile(joinpath(mesh_dir, "matlab_nodes_$i.csv")) &&
-              isfile(joinpath(mesh_dir, "matlab_eps_$i.csv"))
+        isfile(joinpath(mesh_dir, "matlab_eps_$i.csv"))
 
     if !any(have(i) for i in 1:5)
-        explica("faltan output/matlab_{nodes,eps}_N.csv (matlab/exportMesh.m y " *
-                "matlab/exportTags.m).")
+        explica("faltan test/data/meshes/matlab_{nodes,eps}_N.csv; se generan con " *
+            "scripts/generate_material_tags.jl.")
         @test_skip any(have(i) for i in 1:5)
     else
         for i in 1:5
@@ -192,11 +192,12 @@ end
             eps_ml = vec(readdlm(joinpath(mesh_dir, "matlab_eps_$i.csv"), ',', Float64))
             @test eps_jl == eps_ml
 
-            # Con las polyFaces reales de MATLAB (exportTags.m), el conjunto de
-            # DOFs Dirichlet es el MISMO que daba el criterio de la caja
-            # envolvente: en esta cavidad (PEC en las 6 paredes) el criterio
-            # viejo acertaba, solo que por casualidad del problema.
-            if filesize(joinpath(mesh_dir, "matlab_polyfaces_$i.csv")) > 0
+            # Con las polyFaces reales de la malla, el conjunto de DOFs
+            # Dirichlet es el MISMO que daba el criterio de la caja envolvente:
+            # en esta cavidad (PEC en las 6 paredes) el criterio viejo acertaba,
+            # solo que por casualidad del problema.
+            pf = joinpath(mesh_dir, "matlab_polyfaces_$i.csv")
+            if isfile(pf) && filesize(pf) > 0
                 dof_map = build_dof_map(mesh)
                 @test dirichlet_dofs(mesh, dof_map) == dirichlet_dofs_geometrico(mesh, dof_map)
             end

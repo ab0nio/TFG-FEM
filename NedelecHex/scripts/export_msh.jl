@@ -1,15 +1,12 @@
-# export_msh.jl
-# ---------------------------------------------------------------------------
-# Convierte las mallas de MATLAB (CSV) a formato Gmsh .msh 2.2 y exporta las
+# Convierte las mallas de referencia (CSV) a formato Gmsh .msh 2.2 y exporta las
 # mallas generadas con box_mesh, guardándolo todo en output/.
 #
-# Uso:
-#   julia --project=NedelecHex NedelecHex/export_msh.jl
+# Uso (desde NedelecHex/):
+#   julia --project=. scripts/export_msh.jl
 #
-# Salida (en NedelecHex/output/):
-#   matlab_mesh_1.msh ... matlab_mesh_5.msh   (mallas de MATLAB convertidas)
+# Salida (en output/):
+#   matlab_mesh_1.msh ... matlab_mesh_5.msh   (mallas de referencia convertidas)
 #   box_mesh_<nx>x<ny>x<nz>.msh               (mallas generadas con box_mesh)
-# ---------------------------------------------------------------------------
 
 using DelimitedFiles
 using Printf

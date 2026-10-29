@@ -1,5 +1,4 @@
 module Assembly
-# Equivalente en MATLAB: +assembly/getMassMatrix.m, +assembly/getStiffMatrix.m,
 # +assembly/getGlobalMatrices.m (ensamblaje disperso por formato COO).
 
 using LinearAlgebra
@@ -18,7 +17,6 @@ export mass_matrix_element, stiff_matrix_element,
 const INTEGRATION_ORDER = 4
 
 # M_ij = ∫ ε N_i·N_j dΩ  (ec. 20 del paper)
-# MATLAB: +assembly/getMassMatrix.m:23-32
 function mass_matrix_element(W, monomials, nodes; epsilon_r=1.0)
     gaussW, gaussPts = gauss_hex(INTEGRATION_ORDER)
     M = zeros(54, 54)
@@ -32,7 +30,6 @@ function mass_matrix_element(W, monomials, nodes; epsilon_r=1.0)
 end
 
 # K_ij = ∫ μ⁻¹ curl(N_i)·curl(N_j) dΩ  (ec. 21 del paper)
-# MATLAB: +assembly/getStiffMatrix.m:23-31
 function stiff_matrix_element(W, curl_monomials, nodes; inv_mu_r=1.0)
     gaussW, gaussPts = gauss_hex(INTEGRATION_ORDER)
     K = zeros(54, 54)
@@ -51,7 +48,6 @@ end
 # y constante en el elemento), que es la única geometría producida por
 # box_mesh: la posición física se obtiene por el mapeo afín x = x₀ + J·ξ en
 # vez del mapeo isoparamétrico trilineal general.
-# Sin equivalente en MATLAB: allí no hay MMS (el único forzado es el problema
 # de autovalores de la cavidad, que es homogéneo).
 function load_vector_element(W, monomials, O_func, nodes)
     gaussW, gaussPts = gauss_hex(INTEGRATION_ORDER)
@@ -86,19 +82,15 @@ end
 
 # Ensambla las matrices globales K y M recorriendo todos los elementos.
 # Por defecto el material sale de las etiquetas de la malla (mesh.solids +
-# mesh.element_solid), como en MATLAB: getGlobalMatrices.m lee
 # solids(elements(e).solidId).materialObj. epsilon_r/inv_mu_r se pueden pasar a
 # mano (escalar homogéneo o vector de longitud n_elem) para sobreescribirlas.
 #
 # `dirichlet=true` impone las condiciones esenciales (PEC) POR ELEMENTO antes
-# de ensamblar, igual que MATLAB (+assembly/imposeLocalDirichletMatrix.m):
 # dentro del bucle se anulan las filas/columnas de los DOFs Dirichlet de cada
 # Kᵉ/Mᵉ elemental y, al final, se fija la diagonal de esos DOFs a 1. La
 # identificación de DOFs se hace consultando las aristas/caras de cada elemento
 # (element_dirichlet_mask), no como un paso global separado. Por defecto false
 # para no alterar los flujos que necesitan las matrices sin imponer
-# (comparación con MATLAB, MMS con traza no homogénea).
-# MATLAB: +assembly/getGlobalMatrices.m:20-58
 function assemble_global_matrices(
     mesh::HexMesh, dof_map::DOFMap, W, mono, curl_mono;
     epsilon_r::Union{Nothing,Float64,AbstractVector{Float64}}=nothing,
@@ -128,7 +120,6 @@ function assemble_global_matrices(
         Me = mass_matrix_element(W, mono, nodes; epsilon_r=eps_vec[e])
         Ke = stiff_matrix_element(W, curl_mono, nodes; inv_mu_r=mu_vec[e])
 
-        # Imposición de Dirichlet POR ELEMENTO (como MATLAB): se anulan las
         # filas/columnas de los DOFs esenciales de esta matriz elemental antes
         # de volcarla al COO. La diagonal unitaria se fija al final (global),
         # porque un DOF Dirichlet compartido por varios elementos sumaría 1s.
@@ -165,7 +156,6 @@ function assemble_global_matrices(
     K = sparse(findnz(K)..., n_dofs, n_dofs)
 
     # Fija la diagonal de los DOFs Dirichlet a 1 (una sola vez, globalmente).
-    # Equivale a la diagonal unitaria que MATLAB impone por elemento; aquí se
     # hace al final para que los 1s de elementos adyacentes no se sumen.
     if dirichlet
         for d in dirichlet_dofs(mesh, dof_map)

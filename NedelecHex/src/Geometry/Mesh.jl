@@ -1,5 +1,4 @@
 module Mesh
-# Equivalente en MATLAB: +geometry/@Mesh/Mesh.m (allí las mallas vienen
 # pre-generadas en meshesHalfFilledTAP2021.mat; no hay generador con Gmsh).
 # element_nodes -> +geometry/@Element/getAllCoordinates.m;
 # load_hex_mesh lee los CSV que produce exportMesh.m.
@@ -15,9 +14,7 @@ export HexMesh, PolyFace, Solid, box_mesh, load_hex_mesh, load_matlab_mesh,
     tag_exterior_boundary!, tag_solids_by_plane!, edge_key, face_key
 
 # ---------------------------------------------------------------------------
-# Etiquetas de la malla (equivalentes a las de MATLAB)
 #
-# MATLAB no deduce nada de las coordenadas: la malla trae puestas las etiquetas
 # y el ensamblaje solo las consulta.
 #   +geometry/@PolyFace/PolyFace.m  → condición de contorno (polyFaceType)
 #   +geometry/@Solid/Solid.m        → material (materialObj)
@@ -29,7 +26,6 @@ export HexMesh, PolyFace, Solid, box_mesh, load_hex_mesh, load_matlab_mesh,
 # Condición de contorno de un conjunto de caras/aristas.
 # `type` es la cadena que consulta el ensamblaje: "PerfectE" (PEC, Dirichlet),
 # y deja sitio para "PMC", "Port", "ABC"… sin tocar el ensamblaje.
-# MATLAB: +geometry/@PolyFace/PolyFace.m
 struct PolyFace
     id::Int
     name::String
@@ -37,7 +33,6 @@ struct PolyFace
 end
 
 # Material de un conjunto de elementos.
-# MATLAB: +geometry/@Solid/Solid.m + settings.Material (epsilonRelative/muRelative)
 struct Solid
     id::Int
     name::String
@@ -71,7 +66,7 @@ end
 
 Base.show(io::IO, m::HexMesh) =
     print(io, "HexMesh($(size(m.nodes,1)) nodes, $(size(m.elements,1)) elements, " *
-              "$(length(m.solids)) solids, $(length(m.polyfaces)) polyfaces)")
+        "$(length(m.solids)) solids, $(length(m.polyfaces)) polyfaces)")
 
 # --- claves canónicas de las entidades compartidas --------------------------
 # Las mismas que usa build_dof_map para identificar aristas y caras entre
@@ -81,7 +76,6 @@ edge_key(g1::Int, g2::Int) = minmax(g1, g2)
 face_key(gfn::NTuple{4,Int}) = NTuple{4,Int}(sort!(collect(gfn)))
 
 # Tipo de condición de contorno de una arista/cara, "" si es interior.
-# MATLAB: +assembly/imposeLocalDirichletMatrix.m:37-42 (checkDirichlet)
 _polyface_type(mesh::HexMesh, id::Int) = id == 0 ? "" : mesh.polyfaces[id].type
 
 edge_polyface_type(mesh::HexMesh, g1::Int, g2::Int) =
@@ -93,7 +87,6 @@ face_polyface_type(mesh::HexMesh, gfn::NTuple{4,Int}) =
 has_boundary_tags(mesh::HexMesh) = !isempty(mesh.polyfaces)
 
 # --- material por elemento --------------------------------------------------
-# MATLAB: +assembly/getGlobalMatrices.m:25,31 (solids(elements(e).solidId).materialObj)
 element_epsilon(mesh::HexMesh, e::Int) = mesh.solids[mesh.element_solid[e]].epsilon_r
 element_epsilon(mesh::HexMesh) = [element_epsilon(mesh, e) for e in axes(mesh.elements, 1)]
 element_inv_mu(mesh::HexMesh, e::Int) = 1.0 / mesh.solids[mesh.element_solid[e]].mu_r
@@ -101,7 +94,6 @@ element_inv_mu(mesh::HexMesh) = [element_inv_mu(mesh, e) for e in axes(mesh.elem
 
 # Los 8 nodos del elemento en coordenadas físicas, en el orden de
 # ReferenceHex.NODES.
-# MATLAB: +geometry/@Element/getAllCoordinates.m:9-11
 element_nodes(mesh::HexMesh, e::Int) =
     [mesh.nodes[mesh.elements[e, k], :] for k in 1:8]
 
@@ -109,7 +101,6 @@ element_nodes(mesh::HexMesh, e::Int) =
 # ---------------------------------------------------------------------------
 # Etiquetado (preproceso). Es el único sitio del paquete donde se mira la
 # geometría para decidir contorno o material: el ensamblaje solo lee etiquetas.
-# En MATLAB este papel lo hace el mallador que generó meshesHalfFilledTAP2021.mat.
 # ---------------------------------------------------------------------------
 
 # Marca con una PolyFace todas las caras exteriores de la malla y las aristas
@@ -145,7 +136,6 @@ end
 
 # Reparte los elementos en dos sólidos según a qué lado del plano `axis = cut`
 # cae su centroide. El eje es un argumento explícito, no una suposición
-# escondida: el fallo de εᵣ de las mallas de MATLAB (losa cortada por x, código
 # asumiendo z) fue exactamente eso.
 # Comprueba además que ningún elemento cruce el plano, es decir, que el corte
 # coincide con una capa de la malla; si no, la asignación sería ambigua.
@@ -154,7 +144,7 @@ function tag_solids_by_plane!(mesh::HexMesh; axis::Symbol=:z, cut::Float64,
     tol=1e-12, strict::Bool=true)
 
     ax = axis === :x ? 1 : axis === :y ? 2 : axis === :z ? 3 :
-         error("axis debe ser :x, :y o :z (recibido $axis)")
+                                             error("axis debe ser :x, :y o :z (recibido $axis)")
 
     empty!(mesh.solids)
     push!(mesh.solids, Solid(1, below[1], below[2], below[3]))
@@ -166,7 +156,7 @@ function tag_solids_by_plane!(mesh::HexMesh; axis::Symbol=:z, cut::Float64,
         lo, hi = extrema(coord)
         if lo < cut - tol && hi > cut + tol
             msg = "El elemento $e cruza el plano $axis = $cut (rango [$lo, $hi]): " *
-                  "el corte no cae en una capa de la malla y el material es ambiguo."
+                "el corte no cae en una capa de la malla y el material es ambiguo."
             strict ? error(msg) : @warn msg
         end
         centroid = sum(coord) / 8
@@ -208,7 +198,6 @@ function box_mesh(; Lx=1.0, Ly=1.0, Lz=1.0, nx=2, ny=2, nz=2,
 
     # Grupo físico con las 6 superficies del bloque = condición de contorno.
     # Es la forma estándar de etiquetar en Gmsh y el equivalente de la PolyFace
-    # de MATLAB; luego se lee de vuelta con getEntitiesForPhysicalGroup.
     surf_tags = [tag for (_, tag) in gmsh.model.getEntities(2)]
     pg = gmsh.model.addPhysicalGroup(2, surf_tags)
     gmsh.model.setPhysicalName(2, pg, boundary_name)
@@ -216,7 +205,6 @@ function box_mesh(; Lx=1.0, Ly=1.0, Lz=1.0, nx=2, ny=2, nz=2,
     gmsh.model.mesh.generate(3)
     gmsh.model.mesh.recombine()
 
-    # Nodos
     node_tags, coords, _ = gmsh.model.mesh.getNodes()
     n_nodes = length(node_tags)
     nodes_mat = Matrix(reshape(coords, 3, n_nodes)')   # esto le da el formato de HexMesh
@@ -277,7 +265,6 @@ end
 # ReferenceHex.NODES a partir de su posición  dentro de la caja
 # borde del elemento (asume hexaedros alineados con los ejes).
 #
-# geometry.Element en MATLAB usa esta misma convención para el elemento de
 # referencia (ver Element.m: coordinates = [0 0 0; 1 0 0; 1 1 0; 0 1 0; 0 0 1;
 # 1 0 1; 1 1 1; 0 1 1]), pero la numeración de
 # meshesHalfFilledTAP2021.mat me salía diferente a veces
@@ -297,10 +284,6 @@ function _canonical_node_order(nodes::Matrix{Float64}, conn::AbstractVector{Int}
     return conn[perm]
 end
 
-# Carga una HexMesh desde los CSV exportados por MATLAB (exportMesh.m) y los pone en el orden de ReferenceHex.NODES.
-# MATLAB:salida de exportMesh.m:28-29
-# Sin etiquetas: solo nodos y conectividad. Para la cavidad de MATLAB con sus
-# etiquetas reales usar load_matlab_mesh.
 function load_hex_mesh(nodes_csv::String, elems_csv::String)
     nodes = readdlm(nodes_csv, ',', Float64)
     elements = readdlm(elems_csv, ',', Int)
@@ -310,21 +293,11 @@ function load_hex_mesh(nodes_csv::String, elems_csv::String)
     return HexMesh(nodes, elements)
 end
 
-# Carga la malla i de MATLAB con sus etiquetas de contorno y de material.
 #
-# Ficheros (todos los genera matlab/, en `dir`):
-#   matlab_nodes_$i.csv, matlab_elems_$i.csv        exportMesh.m
-#   matlab_polyfaces_$i.csv  id,type,name           exportTags.m
-#   matlab_edgetags_$i.csv   n1,n2,polyFaceId       exportTags.m
-#   matlab_facetags_$i.csv   n1,n2,n3,n4,polyFaceId exportTags.m
-#   matlab_solids_$i.csv     id,eps_r,mu_r,name     exportTags.m
-#   matlab_elemsolid_$i.csv  solidId por elemento   exportTags.m
-#   matlab_eps_$i.csv        εᵣ por elemento        exportElementEpsilon.m (respaldo)
 #
 # Si faltan las etiquetas de contorno se marca el exterior topológico como
 # PerfectE (equivale a lo que hay en estas mallas: cavidad PEC completa) y se
 # avisa. Si faltan las de material se reconstruyen los sólidos a partir de
-# matlab_eps_$i.csv.
 function load_matlab_mesh(dir::String, i::Int; boundary_type="PerfectE")
     f(name) = joinpath(dir, "matlab_$(name)_$i.csv")
     mesh = load_hex_mesh(f("nodes"), f("elems"))
@@ -352,8 +325,8 @@ function load_matlab_mesh(dir::String, i::Int; boundary_type="PerfectE")
             mesh.face_polyface[face_key(ntuple(k -> ft[r, k], 4))] = ft[r, 5]
         end
     else
-        @warn "Faltan las etiquetas de contorno de la malla $i (genéralas con " *
-              "matlab/exportTags.m); se marca el exterior topológico como $boundary_type."
+        @warn "Faltan las etiquetas de contorno de la malla $i; se marca el " *
+            "exterior topológico como $boundary_type."
         tag_exterior_boundary!(mesh; name="contorno", type=boundary_type)
     end
 
@@ -370,8 +343,8 @@ function load_matlab_mesh(dir::String, i::Int; boundary_type="PerfectE")
             error("$(f("elemsolid")) tiene $(length(es)) valores y la malla $i tiene $n_elem elementos.")
         mesh.element_solid .= es
     elseif isfile(f("eps"))
-        @warn "Faltan las etiquetas de material de la malla $i (genéralas con " *
-              "matlab/exportTags.m); se reconstruyen los sólidos desde matlab_eps_$i.csv."
+        @warn "Faltan las etiquetas de material de la malla $i; se reconstruyen " *
+            "los sólidos desde matlab_eps_$i.csv."
         eps_vec = vec(readdlm(f("eps"), ',', Float64))
         length(eps_vec) == n_elem ||
             error("$(f("eps")) tiene $(length(eps_vec)) valores y la malla $i tiene $n_elem elementos.")
@@ -385,7 +358,7 @@ function load_matlab_mesh(dir::String, i::Int; boundary_type="PerfectE")
         end
     else
         error("No hay material para la malla $i: falta $(f("solids"))/$(f("elemsolid")) " *
-              "y también $(f("eps")). Genéralos con matlab/exportTags.m.")
+            "y también $(f("eps")).")
     end
 
     return mesh

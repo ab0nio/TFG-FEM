@@ -1,7 +1,7 @@
-# Script temporal: imprime los 6 autovalores FEM (k = sqrt(λ)) por malla de MATLAB
-# y los analíticos, para construir la tabla de la memoria.
+# Imprime los 6 autovalores FEM (k = sqrt(λ)) por malla y los analíticos, para
+# construir la tabla de la memoria.
 using Pkg
-Pkg.activate(joinpath(@__DIR__))
+Pkg.activate(joinpath(@__DIR__, ".."))
 using NedelecHex
 using NedelecHex.HalfFilledCavity: analytic_eigenvalues, _lowest_physical_eigenvalues
 using NedelecHex.Monomials: build_h2_monomials, build_h2_curl_monomials

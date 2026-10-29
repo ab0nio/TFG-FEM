@@ -1,5 +1,4 @@
 module HalfFilledCavity
-# Equivalentes en MATLAB: mainHalfFilled.m +math/getKcFromHalfFilledCavity.m 
 # ymath/plotHalfFilledCavity.m (pero no hace plot solo el error log-log).
 
 using LinearAlgebra, SparseArrays, Printf, DelimitedFiles
@@ -29,7 +28,6 @@ export analytic_kc, analytic_eigenvalues, convergence_study_matlab
 # (kz imaginario). Para kz = iκ:
 #   kz·cot(kz·L) = (iκ)·cot(iκL) = (iκ)·(−i·coth(κL)) = κ·coth(κL)  (real)
 # por lo que tomar la parte real del resultado es válido para ambos casos propagante y evanescente.
-# MATLAB: +math/getKcFromHalfFilledCavity.m:14-16 (lhsEquation - rhsEquation)
 function _resonance_eq(k, m, n, a, b, c, h, epr)
     k2 = k^2
     km2 = (m * π / a)^2 + (n * π / b)^2
@@ -51,7 +49,6 @@ end
 # Encuentra la raíz de la ecuación trascendente más cercana a kc_init mediante
 # un barrido en malla fina + bisección. La ventana de búsqueda es
 # [max(km+ε, kc_init−scan_hw), kc_init+scan_hw].
-# MATLAB: +math/getKcFromHalfFilledCavity.m:26 (vpasolve; aquí barrido + bisección)
 function analytic_kc(m, n, a, b, c, h, epr, kc_init;
     scan_hw=300.0, n_scan=30_000, tol=1e-12)
     f = k -> _resonance_eq(k, m, n, a, b, c, h, epr)
@@ -84,7 +81,6 @@ function analytic_kc(m, n, a, b, c, h, epr, kc_init;
 end
 
 # Calcula los 6 valores propios analíticos del paper para los parámetros dados.
-# Los valores iniciales son los usados en mainHalfFilled.m de MATLAB.
 #
 # Ojo con el eje: aquí la losa va en z ∈ [0,h], mientras que las mallas de
 # meshesHalfFilledTAP2021.mat la tienen cortada perpendicular a x. Comparar
@@ -92,7 +88,6 @@ end
 # una a otra es intercambiar x↔z (más una reflexión), una isometría de la
 # cavidad, así que el espectro es el mismo. test_10 lo comprueba en las 5 mallas
 # en vez de darlo por supuesto.
-# MATLAB: mainHalfFilled.m:17-24
 function analytic_eigenvalues(; a=0.01, b=0.001, c=0.01, h=0.005, epr=2.0)
     kw = (m, n, kc0) -> analytic_kc(m, n, a, b, c, h, epr, kc0)
     kc = [kw(1, 0, 300.0), kw(2, 0, 540.0), kw(1, 0, 600.0),
@@ -103,9 +98,7 @@ end
 # El material ya no se reconstruye aquí: viene etiquetado en la malla
 # (mesh.solids / mesh.element_solid) y assemble_global_matrices lo lee solo.
 #   - mallas propias: box_mesh + tag_solids_by_plane!(axis=..., cut=...)
-#   - mallas de MATLAB: load_matlab_mesh, que trae los sólidos reales
 # Antes había aquí un `_element_epsilon` que decidía εᵣ por el centroide en z;
-# las mallas de MATLAB tienen la losa cortada por x, así que acertaba el 50%
 # (el azar) y desviaba los autovalores de las mallas gruesas.
 
 # Solver de autovalores.
@@ -113,9 +106,7 @@ end
 # fuera  λ≈0 (núcleo irrotacional de K).
 #
 # Mallas pequeñas (n_free ≤ 2000): solver denso + filtro λ > 1.
-# Selecciona por cercanía a un sigma estimado (lo que hace eigs en MATLAB) captura modos espurios.
 # Mallas grandes: eigs (ARPACK)  igual que mainHalfFilled.m. Requiere explicittransform=:none
-# MATLAB: mainHalfFilled.m:63-64 (sigmaEstimation + eigs)
 function _lowest_physical_eigenvalues(K, M, n_modes, k2_analytic)
     n = size(K, 1)
     if n <= 2000
@@ -128,9 +119,7 @@ function _lowest_physical_eigenvalues(K, M, n_modes, k2_analytic)
     return sort(real.(λ))
 end
 
-# Convergencia usando las mallas exportadas de MATLAB.
 # Carga los CSV generados por exportMesh.m y corre el benchmark FEM sobre cada malla
-# MATLAB: mainHalfFilled.m:50-72 (bucle sobre las 5 mallas y error medio)
 function convergence_study_matlab(kc_analytic::Vector{Float64};
     mesh_dir::String,
     n_meshes::Int=5)
@@ -146,14 +135,12 @@ function convergence_study_matlab(kc_analytic::Vector{Float64};
     @printf("%s\n", "-"^42)
 
     for i in 1:n_meshes
-        # La malla trae sus etiquetas (sólidos y contorno) de MATLAB: aquí no se
         # decide ni el material ni qué es Dirichlet.
         mesh_i = load_matlab_mesh(mesh_dir, i)
         dof_map = build_dof_map(mesh_i)
 
         t0 = time()
         # dirichlet=true: impone el PEC por elemento antes de ensamblar, como
-        # MATLAB (imposeLocalDirichletMatrix.m). El [free,free] de abajo sigue
         # excluyendo esos DOFs, así que el resultado es idéntico.
         K, M = assemble_global_matrices(mesh_i, dof_map, W, mono, curl_mono;
             dirichlet=true)

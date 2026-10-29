@@ -1,10 +1,5 @@
 module ReferenceHex
-#=
-Propósito: Definir la topología fija del hexaedro unidad [0,1]^3.
-MATLAB: NODES→Element.m:36, EDGES→Element.m:70 (getEdgeByLocalNodes),
-        FACES→Element.m:92 (getFaceByLocalEdges)
-=#
-
+# Topología fija del hexaedro unidad [0,1]^3.
 
 const NODES = [
     [0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0],

@@ -1,7 +1,4 @@
 module Monomials
-# Equivalente en MATLAB: el espacio H₂ se construye en +bases/getPolynomials.m:15-17
-# (producto tensorial vía +math/getMixedPolySpace.m y +math/getFullPolySpace.m);
-# los curl salen de curl() en +bases/@SystematicBases/SystematicBases.m:79-82.
 
 export build_h2_monomials, build_h2_curl_monomials, build_h2_curlcurl_monomials
 
@@ -10,7 +7,6 @@ export build_h2_monomials, build_h2_curl_monomials, build_h2_curlcurl_monomials
 
 # 54 monomios vectoriales del espacio H₂ (ec. 4 del paper).
 # Producto tensorial Q(1,2,2) × Q(2,1,2) × Q(2,2,1), en ese orden.
-# MATLAB: +bases/getPolynomials.m:15-17 (+math/getMixedPolySpace.m)
 function build_h2_monomials()
     m = Vector{Function}()
     for kz in 0:2, ky in 0:2, kx in 0:1
@@ -33,7 +29,6 @@ end
 
 # Curl analítico de los 54 monomios. Mismo orden que build_h2_monomials.
 # [f,0,0]→[0, ∂f/∂z, −∂f/∂y]   [0,g,0]→[−∂g/∂z, 0, ∂g/∂x]   [0,0,h]→[∂h/∂y, −∂h/∂x, 0]
-# MATLAB: +bases/@SystematicBases/SystematicBases.m:81 (curl simbólico)
 function build_h2_curl_monomials()
     c = Vector{Function}()
     for kz in 0:2, ky in 0:2, kx in 0:1

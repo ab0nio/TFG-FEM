@@ -1,6 +1,5 @@
 module GlobalDOFs
 # Hacer que los elementos que compartan aristas y caras tengan el mismo Dof global 
-# Equivalente en MATLAB: numeración de DOFs en +geometry/@Mesh/generateDOF.m
 # (+ @Edge/generateDOF.m, @Face/generateDOF.m, @Element/generateVolumeDOF.m;
 # orden local en @Element/getDOF.m).
 #También incluye la equivalencia de +assembly/imposeLocalDirichletMatrix.m.
@@ -88,7 +87,6 @@ function build_dof_map(mesh::HexMesh)
         end
 
         # DOFs de volumen (locales 49-54): siempre son 6 por elemento.
-        # MATLAB: +geometry/@Mesh/generateDOF.m:9-19 (numera aristas/caras/volumen;
         # orden local en @Element/getDOF.m:9-18)
         n_dofs += 6
         for i in 1:6
@@ -110,14 +108,12 @@ end
 # añadirlo a _is_essential_type y a los helpers de despacho.
 #
 # No se mira coordenadas: se pregunta a la malla qué condición de contorno
-# tiene cada arista y cada cara, igual que MATLAB. Así el mismo código sirve
 # para PEC parcial, tabiques metálicos interiores, geometrías no alineadas con
 # los ejes o problemas con varios tipos de contorno: lo que cambia es el
 # etiquetado, no esta función. Las etiquetas las pone el mallador (box_mesh
-# vía grupos físicos de Gmsh, load_matlab_mesh vía exportTags.m) o
+# vía grupos físicos de Gmsh, load_matlab_mesh vía sus CSV) o
 # tag_exterior_boundary!.
 #
-# MATLAB: +assembly/imposeLocalDirichletMatrix.m (allí se aplica por elemento
 # antes de ensamblar; aquí se listan los índices globales)
 
 # Tipos de condición de contorno que imponen una restricción esencial.
@@ -144,7 +140,6 @@ function _essential_face_dofs!(dir_set::Set{Int}, type::String, dofs, f::Int)
 end
 
 # Índices LOCALES (1-54) de los DOFs esenciales del elemento `e`, consultando
-# el tipo de cada arista y cara de la malla (igual que MATLAB por elemento).
 # `honor` decide qué tipos de condición se tienen en cuenta. Devuelve un
 # Vector{Bool} de longitud 54 (true = ese DOF local es esencial).
 function _element_essential_mask(mesh::HexMesh, e::Int, honor::Function)
@@ -180,8 +175,8 @@ end
 function _collect_essential_dofs(mesh::HexMesh, dof_map::DOFMap, honor::Function)
     has_boundary_tags(mesh) ||
         error("La malla no tiene etiquetas de contorno: no hay forma de saber " *
-              "qué DOFs son Dirichlet. Etiquétala (tag_exterior_boundary!, " *
-              "load_matlab_mesh o box_mesh) antes de llamar a esta función.")
+            "qué DOFs son Dirichlet. Etiquétala (tag_exterior_boundary!, " *
+            "load_matlab_mesh o box_mesh) antes de llamar a esta función.")
 
     dir_set = Set{Int}()
     n_elem = size(mesh.elements, 1)
@@ -199,7 +194,6 @@ end
 
 # Máscara (54 Bool) de los DOFs LOCALES esenciales del elemento `e`, con el
 # predicado por defecto (PEC). La usa el ensamblaje para imponer Dirichlet por
-# elemento antes de ensamblar, igual que MATLAB (imposeLocalDirichletMatrix.m).
 function element_dirichlet_mask(mesh::HexMesh, e::Int)
     return _element_essential_mask(mesh, e, _is_essential_type)
 end

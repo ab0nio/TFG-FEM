@@ -1,5 +1,4 @@
-# Prueba HalfFilledCavity.jl reproduciendo mainHalfFilled.m. MATLAB:
-# MATLAB: mainHalfFilled.m:17-24 + getKcFromHalfFilledCavity.m
+# Autovalores analíticos de la cavidad semillena y convergencia del benchmark.
 @testset "HalfFilledCavity.jl: Autovalores analíticos de la cavidad semillena" begin
     kc = NedelecHex.HalfFilledCavity.analytic_eigenvalues()
     explica("Datos de referencia (a=1cm, b=1mm, c=1cm, losa h=5mm, εᵣ=2):
@@ -136,75 +135,85 @@ end
     @test issorted(errors, rev=true)        # el error decrece monótonamente al refinar
     @test isapprox(slope, 4.5, atol=1.0)    # la secante extremo a extremo ronda el 4.55 del paper
 end
-# MATLAB: mainHalfFilled.m:50-72 (bucle de mallas y error relativo medio)
-@testset "HalfFilledCavity.jl: Equivalencia con mainHalfFilled.m (mallas de MATLAB)" begin
-    # Réplica 1:1 de mainHalfFilled.m: mismo dominio, mismas 5 mallas
-    # (meshesHalfFilledTAP2021.mat exportadas con exportMesh.m a
-    # output/matlab_{nodes,elems}_N.csv) 
-    # (error relativo medio de los 6 autovalores frente a los analíticos).
-    # Los valores de referencia son la salida real de mainHalfFilled.m en
-    # MATLAB (R2024, MATLAB Drive, 2026-07-13).
-    mesh_dir = joinpath(@__DIR__, "..", "output")
+# Equivalencia 1:1 con la implementación de referencia sobre las 5 mallas del
+# paper. Los CSV viven en test/data/meshes/. Si falta alguno, el test se omite
+# en vez de fallar: son un fixture, no código.
+@testset "HalfFilledCavity.jl: Equivalencia con la referencia (mallas del paper)" begin
+    # Mismo dominio y mismas 5 mallas que la referencia. Los valores esperados
+    # son la salida real de la implementación de referencia (R2024, 2026-07-13).
+    mesh_dir = joinpath(@__DIR__, "data", "meshes")
+    # load_matlab_mesh necesita, por malla, nodos, conectividad y etiquetas de
+    # material (solids+elemsolid, o eps como respaldo).
+    fixture_ok = all(isfile(joinpath(mesh_dir, f)) for f in
+        ("matlab_nodes_1.csv", "matlab_elems_1.csv", "matlab_solids_1.csv",
+        "matlab_elemsolid_1.csv"))
+    if !fixture_ok
+        @info "Fixture incompleto en $mesh_dir; se omite el testset." *
+            " Genera los CSV con scripts/generate_material_tags.jl para ejecutarlo."
+        @test_skip "fixture incompleto: faltan etiquetas de material en test/data/meshes/"
+    else
 
-    #en vez de mallas estructuradas como hasta ahora, carga las mallas de matlab
-    #Comprueba que el número de DOFs coincide con el que MATLAB imprime en generateDOF (build_dof_map debe reproducir los mismos ) .
-    matlab_unknowns = [318, 1678, 4062, 14916, 23124]
-    explica("Conteo de DOFs en las 5 mallas de MATLAB: build_dof_map debe reproducir exactamente los 'unknowns' que imprime generateDOF: misma identificación de aristas y caras compartidas sobre mallas reales no estructuradas.")
-    for i in 1:5
-        mesh_i = NedelecHex.Mesh.load_matlab_mesh(mesh_dir, i)
-        dof_map = NedelecHex.GlobalDOFs.build_dof_map(mesh_i)
-        @test dof_map.n_dofs == matlab_unknowns[i]
-    end
+        # Mallas no estructuradas: build_dof_map debe reproducir el conteo de
+        # incógnitas de la referencia (misma identificación de aristas y caras
+        # compartidas sobre mallas reales).
+        matlab_unknowns = [318, 1678, 4062, 14916, 23124]
+        explica("Conteo de DOFs en las 5 mallas del paper: build_dof_map debe reproducir exactamente los 'unknowns' de la referencia: misma identificación de aristas y caras compartidas sobre mallas reales no estructuradas.")
+        for i in 1:5
+            mesh_i = NedelecHex.Mesh.load_matlab_mesh(mesh_dir, i)
+            dof_map = NedelecHex.GlobalDOFs.build_dof_map(mesh_i)
+            @test dof_map.n_dofs == matlab_unknowns[i]
+        end
 
-    # Premisa del eje: el modelo analítico pone la losa en z ∈ [0,h] y estas
-    # mallas la tienen cortada por x. Comparar unos autovalores con otros solo
-    # vale porque las dos geometrías son la misma salvo isometría: a = c (la
-    # cavidad mide igual en x que en z) y el corte cae en el plano medio, así
-    # que intercambiar x↔z (más una reflexión) lleva una en la otra y el
-    # espectro no cambia. Si alguna malla dejara de cumplirlo, los autovalores
-    # analíticos ya no serían los de esa malla: se comprueba aquí en vez de
-    # darlo por hecho.
-    for i in 1:5
-        mesh_i = NedelecHex.Mesh.load_matlab_mesh(mesh_dir, i)
-        n_elem = size(mesh_i.elements, 1)
-        x0, x1 = extrema(@view mesh_i.nodes[:, 1])
-        z0, z1 = extrema(@view mesh_i.nodes[:, 3])
-        eps_i = NedelecHex.Mesh.element_epsilon(mesh_i)
-        x_c(e) = sum(@view mesh_i.nodes[mesh_i.elements[e, :], 1]) / 8
+        # Premisa del eje: el modelo analítico pone la losa en z ∈ [0,h] y estas
+        # mallas la tienen cortada por x. Comparar unos autovalores con otros solo
+        # vale porque las dos geometrías son la misma salvo isometría: a = c (la
+        # cavidad mide igual en x que en z) y el corte cae en el plano medio, así
+        # que intercambiar x↔z (más una reflexión) lleva una en la otra y el
+        # espectro no cambia. Si alguna malla dejara de cumplirlo, los autovalores
+        # analíticos ya no serían los de esa malla: se comprueba aquí en vez de
+        # darlo por hecho.
+        for i in 1:5
+            mesh_i = NedelecHex.Mesh.load_matlab_mesh(mesh_dir, i)
+            n_elem = size(mesh_i.elements, 1)
+            x0, x1 = extrema(@view mesh_i.nodes[:, 1])
+            z0, z1 = extrema(@view mesh_i.nodes[:, 3])
+            eps_i = NedelecHex.Mesh.element_epsilon(mesh_i)
+            x_c(e) = sum(@view mesh_i.nodes[mesh_i.elements[e, :], 1]) / 8
 
-        @test isapprox(x1 - x0, z1 - z0; rtol=1e-12)          # a = c
-        @test count(==(2.0), eps_i) == n_elem ÷ 2             # la losa es media cavidad
-        @test all(e -> (x_c(e) > (x0 + x1)/2) == (eps_i[e] == 2.0), 1:n_elem)
-    end
-    explica("Premisa del eje: la losa de estas mallas está cortada por x y el modelo
+            @test isapprox(x1 - x0, z1 - z0; rtol=1e-12)          # a = c
+            @test count(==(2.0), eps_i) == n_elem ÷ 2             # la losa es media cavidad
+            @test all(e -> (x_c(e) > (x0 + x1)/2) == (eps_i[e] == 2.0), 1:n_elem)
+        end
+        explica("Premisa del eje: la losa de estas mallas está cortada por x y el modelo
     analítico la pone en z. Es válido porque a = c y el corte está en el plano medio:
     intercambiar x↔z es una isometría de la cavidad y el espectro es el mismo.")
 
-    # Error medio de autovalores: "Mean error obtained"
-    matlab_mean_err = [0.0675041324758202, 0.002066105907383419, 0.0003323104331071087,
-        7.5286874668569e-5, 3.104919016352379e-5]
+        # Error medio de autovalores: "Mean error obtained"
+        matlab_mean_err = [0.0675041324758202, 0.002066105907383419, 0.0003323104331071087,
+            7.5286874668569e-5, 3.104919016352379e-5]
 
-    kc = NedelecHex.HalfFilledCavity.analytic_eigenvalues()
-    errors = NedelecHex.HalfFilledCavity.convergence_study_matlab(kc; mesh_dir=mesh_dir)
-    julia_mean_err = vec(sum(errors, dims=1)) ./ size(errors, 1)
+        kc = NedelecHex.HalfFilledCavity.analytic_eigenvalues()
+        errors = NedelecHex.HalfFilledCavity.convergence_study_matlab(kc; mesh_dir=mesh_dir)
+        julia_mean_err = vec(sum(errors, dims=1)) ./ size(errors, 1)
 
-    tabla = join([@sprintf("\n  %-7d %-15.8e %-15.8e %.6f", i, julia_mean_err[i],
-        matlab_mean_err[i], julia_mean_err[i] / matlab_mean_err[i])
-                  for i in 1:5])
-    explica("Error medio por malla, Julia vs mainHalfFilled.m: deben coincidir en las 5.
+        tabla = join([@sprintf("\n  %-7d %-15.8e %-15.8e %.6f", i, julia_mean_err[i],
+            matlab_mean_err[i], julia_mean_err[i] / matlab_mean_err[i])
+                      for i in 1:5])
+        explica("Error medio por malla, Julia vs referencia: deben coincidir en las 5.
     Antes las mallas gruesas se desviaban ~40%; la causa no era el ensamblaje sino el
     material: el εᵣ se reconstruía por el centroide en z y estas mallas tienen la losa
     cortada por x, así que acertaba la mitad de los elementos. Ahora el εᵣ viene
-    etiquetado en la malla (Solid), como en MATLAB, y la coincidencia es total.",
-        "\n  malla   Julia           MATLAB          ratio", tabla)
+    etiquetado en la malla (Solid) y la coincidencia es total.",
+            "\n  malla   Julia           referencia      ratio", tabla)
 
-    # Mismo problema discreto (misma malla, mismo εᵣ, mismo PEC) → mismos autovalores.
-    # Que K fuera bit-idéntica en test_08 mientras M no lo era es lo que señaló al
-    # material como única causa posible.
-    for i in 1:5
-        @test isapprox(julia_mean_err[i], matlab_mean_err[i], rtol=1e-6)
+        # Mismo problema discreto (misma malla, mismo εᵣ, mismo PEC) → mismos autovalores.
+        # Que K fuera bit-idéntica en test_08 mientras M no lo era es lo que señaló al
+        # material como única causa posible.
+        for i in 1:5
+            @test isapprox(julia_mean_err[i], matlab_mean_err[i], rtol=1e-6)
+        end
+
+        # Misma tendencia de convergencia que la Fig. 5 del paper.
+        @test issorted(julia_mean_err, rev=true)
     end
-
-    # Misma tendencia de convergencia que la Fig. 5 del paper.
-    @test issorted(julia_mean_err, rev=true)
 end

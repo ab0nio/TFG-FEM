@@ -1,6 +1,4 @@
 module CoefficientGenerator
-# Equivalente en MATLAB: +bases/@SystematicBases/getCoefficients.m
-# (y mainGenerateCoefficients.m mas o menos).
 
 using LinearAlgebra
 using BenchmarkTools: @benchmark, median, mean, minimum, maximum
@@ -10,7 +8,7 @@ using Printf
 
 export get_coefficients, run_all_tests
 
-# MATLAB: getCoefficients.m (matriz G líneas 16-36; W = G\I línea 39)
+# Matriz G de funcionales y su inversa W = G\I.
 function get_coefficients()
     monomials = build_h2_monomials()
     N = length(monomials)
@@ -24,11 +22,10 @@ function get_coefficients()
     return W, G
 end
 
-#Escribe las tablas en el mismo formato de matlab y las compara.
+# Escribe la tabla W y la compara con la de referencia.
 function run_all_tests(; verbose::Bool=true)
     W, G = get_coefficients()
 
-    # Validación mínima
     err = norm(W * G - I(54))
     @printf("W·G - I  error: %.2e  %s\n\n", err, err < 1e-10 ? "✓" : "✗")
     passed = err < 1e-10
@@ -42,7 +39,6 @@ function run_all_tests(; verbose::Bool=true)
         )
         sep = repeat("----|", 55)
 
-        # Imprime por pantalla
         @printf("%-4s", "Ni")
         for j in 1:54
             @printf("|%4d", j)
@@ -58,7 +54,6 @@ function run_all_tests(; verbose::Bool=true)
         end
         println(sep)
 
-        # Guarda en fichero
         output_dir = joinpath(@__DIR__, "..", "..", "output")
         mkpath(output_dir)
         open(joinpath(output_dir, "tabla_W.txt"), "w") do f
