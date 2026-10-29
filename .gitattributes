@@ -1,0 +1,7 @@
+# La memoria y la presentación son documentación del TFG, no el código del
+# proyecto: no cuentan para la barra de lenguajes de GitHub.
+memoria/** linguist-documentation
+presentación/** linguist-documentation
+
+# Los CSV de malla son fixtures de test, no datos del proyecto.
+NedelecHex/test/data/** linguist-vendored
