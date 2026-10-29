@@ -28,9 +28,20 @@ documentation/
 # no se versiona en TFG-FEM
 matlab/
 
-# Memoria del TFG (documento LaTeX final): no se versiona en este repo
-memoria/
 
 # Configuración local del editor (rutas absolutas de esta máquina)
 .vscode/
 .aider*
+
+# Solo se versionan los PDF y el .tex principal de memoria y presentacion
+memoria/figuras/
+memoria/imagenes/
+memoria/bibliografia/
+memoria/presentacion_tfg.tex
+memoria/tablas_coeficientes.tex
+memoria/memoria_tfg.xmpdata
+memoria/pdfa.xmpi
+memoria/.gitignore
+presentación/beamer/img/
+presentación/beamer/code_compare/
+presentación/beamer/build.sh
