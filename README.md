@@ -14,62 +14,17 @@ de funciones de base hexaédricas *curl-conforming* de Nédélec de segundo orde
 
 ---
 
-## English summary
+## Resumen
 
-A from-scratch Julia implementation of the **second-order Nédélec curl-conforming
-hexahedral element** for computational electromagnetics, reproducing the element
-construction and the numerical results of the IEEE TAP paper above.
+Implementación en Julia del elemento hexaédrico *curl-conforming* de Nédélec de
+segundo orden (54 grados de libertad por hexaedro: 12 aristas × 2, 6 caras × 4 y
+6 funcionales de volumen), construido desde cero y validado contra las tablas del
+paper, contra una implementación de referencia y contra la solución analítica de
+una cavidad semillena. La convergencia observada del primer autovalor es 4.60
+frente al 4.55 del paper.
 
-The element has **54 degrees of freedom** per hexahedron: 12 edges × 2, 6 faces × 4,
-and 6 volume functionals. Building it requires solving four non-trivial problems:
-
-- **Unisolvent basis construction.** 54 hierarchical monomials are generated under the
-  Nédélec constraints, then the DOF functional matrix `G` is inverted to obtain the
-  coefficient matrix `W = G⁻¹`. The test suite verifies that `G` is unisolvent and that
-  `W` reproduces Table II of the paper.
-- **Piola transforms.** Basis functions are defined on the reference element and mapped
-  to physical elements through the Jacobian, with the covariant Piola transform for the
-  field and the contravariant one for its curl.
-- **DOF orientation on shared edges.** Two elements sharing an edge must agree on the
-  sign of that edge's DOFs. The global numbering resolves this consistently, which is
-  what makes the assembled system correct on unstructured meshes.
-- **Material interfaces.** The half-filled cavity has a dielectric slab that cuts through
-  elements; the permittivity is carried per element by the mesh tags rather than
-  reconstructed geometrically.
-
-**Validation.** The implementation is checked against the paper's tables, against a
-reference MATLAB implementation (1:1 agreement on local matrices, coefficients, and
-eigenvalues), and against an analytic solution for the half-filled cavity. The observed
-convergence rate is **4.60** against the paper's **4.55** (Fig. 7).
-
-**Stack:** Julia, sparse assembly (COO → CSC), ARPACK `eigs`, Gmsh for mesh I/O.
-
----
-
-## Resultados
-
-Convergencia del primer autovalor de la cavidad semillena frente al refinamiento,
-comparada con la implementación de referencia:
-
-![Convergencia cavidad semillena](docs/convergencia_half_filled.png)
-
-| n (elementos por eje) | h | error rel. k² |
-|---|---|---|
-| 1 | 1.0000 | 5.979e-01 |
-| 2 | 0.5000 | 8.104e-03 |
-| 4 | 0.2500 | 6.360e-04 |
-| 8 | 0.1250 | 4.168e-05 |
-
-Pendiente log-log extremo a extremo: **4.60** (paper: 4.55, Fig. 7).
-
-Otros resultados verificados por la suite de tests:
-
-- **Tabla II del paper**: los 54 coeficientes de `W` son enteros y coinciden.
-- **Tabla III**: números de condición de las matrices locales.
-- **Equivalencia con la referencia**: mismos autovalores medios en las 5 mallas del
-  paper (tolerancia relativa 1e-6).
-- **Conteo de DOFs globales** sobre mallas no estructuradas: 318, 1678, 4062, 14916,
-  23124 para las 5 mallas.
+La memoria completa, con la formulación, los resultados y la discusión, está en
+[`memoria/memoria_tfg.pdf`](memoria/memoria_tfg.pdf).
 
 ---
 
@@ -95,8 +50,6 @@ Otros resultados verificados por la suite de tests:
 
 - **[`visualization/manim/`](visualization/manim/)**: animaciones en
   Python/Manim que ilustran la formulación y los resultados.
-
-- **`docs/`**: figuras usadas en este README.
 
 ## Uso (paquete Julia)
 
